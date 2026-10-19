@@ -136,9 +136,11 @@ export default function Ajustes(p: Props) {
       </section>
 
       <section className="cartao">
-        <h3><Sparkles size={18} /> Dados de exemplo</h3>
-        <p className="ajuda">Preenche o sistema com 6 meses de movimentações fictícias para você conhecer todos os recursos.</p>
-        <button className="btn" onClick={p.onCarregarExemplo}><Sparkles size={16} /> Carregar exemplo</button>
+        <h3><Sparkles size={18} /> Demonstração</h3>
+        <p className="ajuda">
+          Mostra o sistema com 6 meses de movimentações fictícias. Seus dados reais não são alterados e você pode voltar a eles a qualquer momento.
+        </p>
+        <button className="btn" onClick={p.onCarregarExemplo}><Sparkles size={16} /> Ver demonstração</button>
         <hr />
         <h3 className="perigo-titulo"><Trash2 size={18} /> Zona de perigo</h3>
         <p className="ajuda">Remove todos os lançamentos, contas, transferências, categorias e orçamentos da sua conta.</p>

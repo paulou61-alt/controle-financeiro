@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowDownRight, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight, Cloud, CloudOff, Eye, EyeOff, HandCoins,
-  Landmark, LayoutDashboard, List, Loader2, LogOut, Menu, Moon, Plus, Receipt, Settings, Sun, Tags, Target, X,
+  Landmark, LayoutDashboard, List, Loader2, LogOut, Menu, Moon, Plus, Receipt, Settings, Sparkles, Sun, Tags, Target,
+  Trash2, Undo2, X,
   type LucideIcon,
 } from 'lucide-react'
 import type { Backup, Categoria, ContaFinanceira, Lancamento, Orcamentos, Tipo, Transferencia } from './types'
@@ -87,14 +88,20 @@ interface Props {
   dados: Dados
   setDados: (f: (d: Dados) => Dados) => void
   status: StatusNuvem
+  emDemo: boolean
+  onEntrarDemo: () => void
+  onSairDemo: () => void
   onTentarSalvar: () => void
   email: string
   onSair: () => void
 }
 
+/** Contas criadas pelo gerador de exemplo (versões anteriores gravavam o exemplo na conta) */
+const ehContaExemplo = (c: ContaFinanceira) => c.id.endsWith('-exemplo')
+
 type EdicaoLancamento = { inicial: Lancamento | null; tipo: Tipo }
 
-export default function App({ dados, setDados, status, onTentarSalvar, email, onSair }: Props) {
+export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onSairDemo, onTentarSalvar, email, onSair }: Props) {
   const [aba, setAbaEstado] = useState<Aba>('painel')
   const [mes, setMes] = useState(mesAtual())
   const [periodo, setPeriodo] = useState<Periodo>(() => periodoDoPreset('mes'))
@@ -229,13 +236,40 @@ export default function App({ dados, setDados, status, onTentarSalvar, email, on
 
   /* ---------- Dados ---------- */
 
-  const carregarExemplo = () => {
-    if ((lancamentos.length || transferencias.length) && !confirm('Substituir seus dados atuais pelos dados de exemplo?')) return
-    const ex = gerarExemplo()
-    setDados((d) => ({ ...d, categorias: CATEGORIAS_PADRAO, ...ex }))
+  const resetarFiltros = () => {
     setContaFiltro('')
     setPeriodo(periodoDoPreset('mes'))
     setAba('painel')
+  }
+
+  const carregarExemplo = () => {
+    onEntrarDemo()
+    resetarFiltros()
+  }
+
+  const sairDemo = () => {
+    onSairDemo()
+    resetarFiltros()
+  }
+
+  const contasExemplo = emDemo ? [] : contas.filter(ehContaExemplo)
+  const removerExemplo = () => {
+    const ids = new Set(contasExemplo.map((c) => c.id))
+    const qtd = lancamentos.filter((l) => ids.has(l.contaId)).length
+    const nomes = contasExemplo.map((c) => `"${c.nome}"`).join(', ')
+    if (!confirm(`Remover os dados de exemplo?\n\nSerão apagados ${qtd} lançamento(s), as transferências e as contas ${nomes}. Se você lançou algo seu nessas contas, também será removido.`)) return
+    const orcExemplo = JSON.stringify(gerarExemplo().orcamentos)
+    setDados((d) => {
+      const restantes = d.contas.filter((c) => !ids.has(c.id))
+      return {
+        ...d,
+        contas: restantes.length ? restantes : [contaPrincipal()],
+        lancamentos: d.lancamentos.filter((l) => !ids.has(l.contaId)),
+        transferencias: d.transferencias.filter((t) => !ids.has(t.origemId) && !ids.has(t.destinoId)),
+        orcamentos: JSON.stringify(d.orcamentos) === orcExemplo ? {} : d.orcamentos,
+      }
+    })
+    resetarFiltros()
   }
 
   const importar = (b: Partial<Backup>) => setDados((d) => normalizarDados({ ...b, nome: d.nome }, d.nome))
@@ -304,6 +338,20 @@ export default function App({ dados, setDados, status, onTentarSalvar, email, on
         </aside>
 
         <div className="principal">
+          {emDemo && (
+            <div className="faixa-demo" role="status">
+              <Sparkles size={18} />
+              <span><strong>Modo demonstração.</strong> Estes são dados de exemplo e nada aqui é salvo na sua conta.</span>
+              <button className="btn pequeno claro" onClick={sairDemo}><Undo2 size={15} /> Voltar para meus dados</button>
+            </div>
+          )}
+          {contasExemplo.length > 0 && (
+            <div className="faixa-demo aviso" role="status">
+              <Sparkles size={18} />
+              <span><strong>Sua conta contém dados de exemplo.</strong> Remova-os para começar com os seus dados reais.</span>
+              <button className="btn pequeno claro" onClick={removerExemplo}><Trash2 size={15} /> Remover dados de exemplo</button>
+            </div>
+          )}
           <header className="cabecalho">
             <div className="cab-titulo">
               <h1>{titulo}</h1>

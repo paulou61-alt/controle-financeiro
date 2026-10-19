@@ -104,6 +104,22 @@ div.mov-info { cursor: default; }
 .modal.tipo-transferencia .valor-grande input { color: var(--primaria); }
 .modal .opcoes-tema button { font-size: 12.5px; }
 
+/* Faixa do modo demonstração */
+.faixa-demo {
+  position: sticky; top: 0; z-index: 9; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 36px; color: #fff; font-size: 14px;
+  background: linear-gradient(90deg, #5b3df5, #8a5cff 60%, #22b8d8);
+}
+.faixa-demo.aviso { background: linear-gradient(90deg, #b45309, #f59e0b); }
+.faixa-demo span { flex: 1; min-width: 200px; }
+.faixa-demo .btn { flex: none; }
+.faixa-demo ~ .cabecalho { top: 44px; }
+@media (max-width: 640px) {
+  .faixa-demo { padding: 10px 16px; position: static; }
+  .faixa-demo ~ .cabecalho { top: 0; }
+  .faixa-demo .btn { width: 100%; }
+}
+
 /* Menu inferior e botão flutuante */
 .mi-icone { position: relative; display: inline-grid; }
 .mi-icone .ponto { position: absolute; top: -2px; right: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--vermelho); border: 2px solid var(--superficie); }

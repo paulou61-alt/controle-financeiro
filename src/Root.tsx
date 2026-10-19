@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { CheckCircle2, CloudOff, KeyRound, Loader2, Lock, Settings } from 'lucide-react'
 import { supabase, supabaseConfigurado, traduzirErro } from './supabase'
-import { useDadosNuvem } from './useDadosNuvem'
+import { useDadosNuvem, type Dados } from './useDadosNuvem'
+import { gerarExemplo } from './exemplo'
+import { CATEGORIAS_PADRAO } from './utils'
 import Login from './components/Login'
 import App from './App'
 
@@ -86,6 +88,9 @@ function NovaSenha({ onConcluir }: { onConcluir: () => void }) {
 function AreaLogada({ user }: { user: User }) {
   const nomeInicial = String(user.user_metadata?.nome ?? '')
   const { dados, setDados, status, tentarNovamente } = useDadosNuvem(user.id, nomeInicial)
+  // Modo demonstração: dados de exemplo só na memória, nunca gravados na conta
+  const [demo, setDemo] = useState<Dados | null>(null)
+  const setDemoDados = useCallback((f: (d: Dados) => Dados) => setDemo((d) => (d ? f(d) : d)), [])
 
   if (status === 'erro-carregar')
     return (
@@ -101,9 +106,12 @@ function AreaLogada({ user }: { user: User }) {
 
   return (
     <App
-      dados={dados}
-      setDados={setDados}
-      status={status}
+      dados={demo ?? dados}
+      setDados={demo ? setDemoDados : setDados}
+      status={demo ? 'salvo' : status}
+      emDemo={!!demo}
+      onEntrarDemo={() => setDemo({ ...dados, categorias: CATEGORIAS_PADRAO, ...gerarExemplo() })}
+      onSairDemo={() => setDemo(null)}
       onTentarSalvar={tentarNovamente}
       email={user.email ?? ''}
       onSair={() => supabase.auth.signOut()}
