@@ -87,41 +87,7 @@
 .li-nota { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--texto-2); }
 .li-nota.aviso { color: var(--amarelo); }
 
-/* Campos com máscara */
-.campo-moeda-mascara { position: relative; display: inline-flex; align-items: center; min-width: 0; }
-.campo > .campo-moeda-mascara, .linha .campo-moeda-mascara { display: flex; width: 100%; }
-.campo-moeda-mascara input { width: 100%; font-variant-numeric: tabular-nums; }
-.campo .campo-moeda-mascara input { text-align: right; }
-.campo-moeda-mascara .sinal {
-  position: absolute; left: 6px; width: 30px; height: 30px; border-radius: 8px; border: 0; background: var(--hover);
-  font-weight: 800; color: var(--texto-2);
-}
-.campo-moeda-mascara:has(.sinal) input { padding-left: 44px !important; }
-.valor-grande .campo-moeda-mascara { width: auto; }
-.valor-grande .campo-moeda-mascara input { text-align: center; }
-.campo-status { position: relative; display: flex; align-items: center; }
-.campo-status input { width: 100%; padding-right: 40px !important; }
-.campo-status > svg { position: absolute; right: 12px; pointer-events: none; }
-.campo-status.ok > svg { color: var(--verde); }
-.campo-status.ok input { border-color: color-mix(in srgb, var(--verde) 55%, var(--borda)) !important; }
-.campo-status.ruim > svg { color: var(--vermelho); }
-.campo-status.ruim input { border-color: var(--vermelho) !important; }
-.erro-campo { color: var(--vermelho) !important; font-weight: 600; }
-
-/* Clientes e fornecedores */
-.grade-contatos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
-.contato-item { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 18px; border: 1px solid var(--borda); background: var(--superficie-2); min-width: 0; }
-.contato-item .orc-nome strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dados-contato { margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
-.dados-contato > div { display: flex; gap: 8px; align-items: center; min-width: 0; }
-.dados-contato dt { color: var(--texto-3); font-weight: 700; font-size: 12px; min-width: 38px; display: inline-flex; }
-.dados-contato dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dados-contato a { color: var(--primaria); text-decoration: none; }
-.totais-contato { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-top: 10px; border-top: 1px dashed var(--borda); font-size: 12.5px; color: var(--texto-2); align-items: center; }
-.totais-contato .kpi-nota { margin-left: auto; }
-
 @media (max-width: 640px) {
-  .grade-contatos { grid-template-columns: 1fr; }
   .opcoes-tema.quatro { grid-template-columns: repeat(2, 1fr); }
   .cartao-visual { flex-basis: 82%; }
   .li-topo { flex-wrap: wrap; }

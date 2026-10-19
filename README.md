@@ -43,3 +43,32 @@ npm run dev
 1. Acesse https://vercel.com/new e importe este repositório do GitHub.
 2. A Vercel detecta o Vite automaticamente (build `npm run build`, saída `dist`).
 3. Adicione as variáveis do Supabase (passo 5 acima) e clique em **Deploy**. Cada novo `git push` na branch `main` publica uma nova versão.
+
+## Planos e Stripe
+
+A aba **Planos** está disponível no menu lateral e em **Mais** no celular.
+
+| Plano | Valor em BRL | Tipo de preço no Stripe |
+| --- | --- | --- |
+| Mensal | R$ 14,90 | Recorrente, a cada 1 mês |
+| Semestral | R$ 69,90 | Recorrente, a cada 6 meses |
+| Anual — Melhor equilíbrio | R$ 99,90 | Recorrente, a cada 1 ano |
+| Vitalício — Pague uma vez | R$ 149,90 | Pagamento único |
+
+Crie os quatro preços e seus Payment Links no painel do Stripe seguindo
+https://docs.stripe.com/payment-links. Configure os links públicos nas variáveis
+`VITE_STRIPE_LINK_MENSAL`, `VITE_STRIPE_LINK_SEMESTRAL`, `VITE_STRIPE_LINK_ANUAL`
+e `VITE_STRIPE_LINK_VITALICIO` na Vercel (ou `.env.local`) e gere um novo build.
+Os valores exibidos são os totais cobrados por período, não parcelas mensais.
+Confirme que cada link usa o preço, moeda e recorrência correspondentes à tabela.
+
+Sem um link válido de `https://buy.stripe.com/...`, o plano mostra **Em breve**.
+No modo demonstração, todos os botões de contratação ficam desabilitados.
+Os links abrem o checkout hospedado pelo Stripe em outra aba. Nenhuma chave
+secreta deve ser colocada em variáveis `VITE_*`, pois elas são públicas.
+
+Esta etapa oferece a vitrine e o direcionamento ao pagamento. Ela não bloqueia
+recursos nem libera acesso automaticamente após a compra. Para vincular pagamentos
+à conta autenticada e controlar permissões, será necessária uma integração de
+backend com Checkout autenticado e webhooks Stripe verificados; nunca use o
+redirecionamento de sucesso ou dados do navegador como prova de pagamento.

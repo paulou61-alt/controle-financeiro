@@ -1,31 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Categoria, ContaFinanceira, Contato, Lancamento, Orcamentos, Perfil, Serie, Transferencia } from './types'
+import type { Categoria, ContaFinanceira, Lancamento, Orcamentos, Serie, Transferencia } from './types'
 import { supabase } from './supabase'
-import { CATEGORIAS_PADRAO, hojeISO, uid } from './utils'
-
-const chaveNome = (s: string) => s.trim().toLowerCase()
-
-/** Cria cadastros a partir dos nomes digitados nos lançamentos e liga cada lançamento ao seu contato */
-function vincularContatos(lancamentos: Lancamento[], existentes: Contato[]) {
-  const contatos = existentes.map((c) => ({ ...c }))
-  const porNome = new Map(contatos.map((c) => [chaveNome(c.nome), c]))
-  const ids = new Set(contatos.map((c) => c.id))
-  const vinculados = lancamentos.map((l) => {
-    if (l.contatoId && ids.has(l.contatoId)) return l
-    if (!l.contato?.trim()) return l.contatoId ? { ...l, contatoId: undefined } : l
-    let c = porNome.get(chaveNome(l.contato))
-    if (!c) {
-      c = { id: uid(), nome: l.contato.trim(), papel: l.tipo === 'receita' ? 'cliente' : 'fornecedor', pessoa: 'juridica' }
-      contatos.push(c)
-      porNome.set(chaveNome(c.nome), c)
-      ids.add(c.id)
-    } else if ((c.papel === 'cliente' && l.tipo === 'despesa') || (c.papel === 'fornecedor' && l.tipo === 'receita')) {
-      c.papel = 'ambos'
-    }
-    return { ...l, contatoId: c.id }
-  })
-  return { lancamentos: vinculados, contatos }
-}
+import { CATEGORIAS_PADRAO, hojeISO } from './utils'
 
 export interface Dados {
   nome: string
@@ -35,8 +11,6 @@ export interface Dados {
   contas: ContaFinanceira[]
   transferencias: Transferencia[]
   series: Serie[]
-  contatos: Contato[]
-  perfil: Perfil
 }
 
 export type StatusNuvem = 'carregando' | 'erro-carregar' | 'salvo' | 'salvando' | 'erro-salvar'
@@ -47,7 +21,6 @@ export const contaPrincipal = (dataSaldoInicial = hojeISO()): ContaFinanceira =>
 
 const padrao = (nome: string): Dados => ({
   nome, categorias: CATEGORIAS_PADRAO, lancamentos: [], orcamentos: {}, contas: [contaPrincipal()], transferencias: [], series: [],
-  contatos: [], perfil: { pessoa: 'fisica' },
 })
 
 /** Garante o formato atual dos dados, migrando versões antigas (sem contas financeiras) */
@@ -61,7 +34,7 @@ export function normalizarDados(d: Partial<Dados>, nome = ''): Dados {
   const ids = new Set(contas.map((c) => c.id))
   const contaPadrao = contas.find((c) => !c.arquivada)?.id ?? contas[0].id
 
-  const normalizados = brutos.map((l) => {
+  const lancamentos = brutos.map((l) => {
     const pago = !!l.pago
     return {
       ...l,
@@ -70,8 +43,6 @@ export function normalizarDados(d: Partial<Dados>, nome = ''): Dados {
       dataPagamento: pago ? l.dataPagamento ?? l.data : undefined,
     } as Lancamento
   })
-  const { lancamentos, contatos } = vincularContatos(normalizados, Array.isArray(d.contatos) ? d.contatos : [])
-  const perfil: Perfil = d.perfil && (d.perfil.pessoa === 'fisica' || d.perfil.pessoa === 'juridica') ? d.perfil : { pessoa: 'fisica' }
 
   return {
     nome: typeof d.nome === 'string' ? d.nome : nome,
@@ -81,8 +52,6 @@ export function normalizarDados(d: Partial<Dados>, nome = ''): Dados {
     contas,
     transferencias: Array.isArray(d.transferencias) ? d.transferencias.filter((t) => ids.has(t.origemId) && ids.has(t.destinoId)) : [],
     series: Array.isArray(d.series) ? d.series : [],
-    contatos,
-    perfil,
   }
 }
 

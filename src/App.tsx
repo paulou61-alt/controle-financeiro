@@ -29,8 +29,9 @@ import ImportarExtrato from './components/ImportarExtrato'
 import { EscolhaEscopo } from './components/comuns'
 import ContatosView from './components/Contatos'
 import FormContato from './components/FormContato'
+import Planos from './components/Planos'
 
-export type Aba = 'painel' | 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes' | 'contatos' | 'orcamentos' | 'categorias' | 'ajustes'
+export type Aba = 'painel' | 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes' | 'contatos' | 'orcamentos' | 'categorias' | 'planos' | 'ajustes'
 export type Tema = 'sistema' | 'claro' | 'escuro'
 
 const ABAS: { id: Aba; rotulo: string; curto: string; icone: LucideIcon }[] = [
@@ -43,6 +44,7 @@ const ABAS: { id: Aba; rotulo: string; curto: string; icone: LucideIcon }[] = [
   { id: 'contatos', rotulo: 'Clientes e fornecedores', curto: 'Contatos', icone: Users },
   { id: 'orcamentos', rotulo: 'Orçamentos', curto: 'Metas', icone: Target },
   { id: 'categorias', rotulo: 'Categorias', curto: 'Categ.', icone: Tags },
+  { id: 'planos', rotulo: 'Planos', curto: 'Planos', icone: Sparkles },
   { id: 'ajustes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings },
 ]
 const NO_MENU_INFERIOR: Aba[] = ['painel', 'lancamentos', 'pagar', 'receber']
@@ -57,6 +59,7 @@ const SUBTITULOS: Record<Aba, string> = {
   contatos: 'Cadastro com CPF ou CNPJ, e-mail e telefone',
   orcamentos: 'Limites mensais para manter os gastos sob controle',
   categorias: 'Organize suas receitas e despesas do seu jeito',
+  planos: 'Escolha o melhor período para você',
   ajustes: 'Perfil, aparência e backup dos seus dados',
 }
 
@@ -488,7 +491,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <button className="btn-icone so-celular" onClick={() => setTema(escuro ? 'claro' : 'escuro')} aria-label="Alternar tema">
                 {escuro ? <Sun size={19} /> : <Moon size={19} />}
               </button>
-              {aba !== 'painel' && (
+              {aba !== 'painel' && aba !== 'planos' && (
                 <button className="btn primario so-desktop" onClick={() => novo(aba === 'receber' ? 'receita' : 'despesa')}>
                   <Plus size={18} /> Novo lançamento
                 </button>
@@ -528,6 +531,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <OrcamentosView mes={mes} lancamentos={lancamentos} categorias={categorias} orcamentos={orcamentos} setOrcamentos={setOrcamentos} />
             )}
             {aba === 'categorias' && <CategoriasView categorias={categorias} setCategorias={setCategorias} lancamentos={lancamentos} />}
+            {aba === 'planos' && <Planos emDemo={emDemo} />}
             {aba === 'ajustes' && (
               <Ajustes categorias={categorias} lancamentos={lancamentos} orcamentos={orcamentos} contas={contas} transferencias={transferencias}
                 onImportar={importar} onApagarTudo={apagarTudo}

@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import type { ContaFinanceira, Lancamento, Transferencia } from '../types'
 import { saldoConta, type Fatura } from '../financas'
-import { formatData, hojeISO, rotuloMes, uid } from '../utils'
+import { formatData, hojeISO, parseValor, rotuloMes, uid } from '../utils'
 import { useFmt } from '../ui'
 import { Modal } from './comuns'
-import { InputMoeda } from './campos'
 
 interface Props {
   fatura: Fatura
@@ -18,7 +17,7 @@ interface Props {
 export default function FormPagarFatura({ fatura, contas, lancamentos, transferencias, onSalvar, onFechar }: Props) {
   const fmt = useFmt()
   const pagadoras = contas.filter((c) => c.tipo !== 'cartao' && !c.arquivada)
-  const [valor, setValor] = useState<number | null>(fatura.restante)
+  const [valor, setValor] = useState(fatura.restante.toFixed(2).replace('.', ','))
   const [contaId, setContaId] = useState(pagadoras.some((c) => c.id === fatura.cartao.contaPagamentoId) ? fatura.cartao.contaPagamentoId! : pagadoras[0]?.id ?? '')
   const [data, setData] = useState(hojeISO())
   const [erro, setErro] = useState('')
@@ -26,7 +25,7 @@ export default function FormPagarFatura({ fatura, contas, lancamentos, transfere
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault()
-    const num = valor ?? NaN
+    const num = parseValor(valor)
     if (!contaId) return setErro('Escolha a conta que vai pagar a fatura.')
     if (!Number.isFinite(num) || num <= 0) return setErro('Informe um valor maior que zero.')
     if (!data) return setErro('Informe a data do pagamento.')
@@ -48,7 +47,7 @@ export default function FormPagarFatura({ fatura, contas, lancamentos, transfere
         <span>Valor do pagamento</span>
         <div>
           <em>R$</em>
-          <InputMoeda autoFocus valor={valor} onChange={setValor} aria-label="Valor" />
+          <input autoFocus inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} aria-label="Valor" />
         </div>
       </label>
       <div className="linha">

@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import type { ContaFinanceira, TipoConta } from '../types'
-import { hojeISO, uid } from '../utils'
+import { hojeISO, parseValor, uid } from '../utils'
 import { Modal, TIPOS_CONTA } from './comuns'
-import { InputMoeda } from './campos'
 
 interface Props {
   inicial: ContaFinanceira | null
@@ -15,10 +14,10 @@ interface Props {
 export default function FormConta({ inicial, tipoInicial, contas, onSalvar, onFechar }: Props) {
   const [nome, setNome] = useState(inicial?.nome ?? '')
   const [tipo, setTipo] = useState<TipoConta>(inicial?.tipo ?? tipoInicial ?? 'banco')
-  const [saldo, setSaldo] = useState<number | null>(inicial ? inicial.saldoInicial : null)
+  const [saldo, setSaldo] = useState(inicial ? inicial.saldoInicial.toFixed(2).replace('.', ',') : '')
   const [data, setData] = useState(inicial?.dataSaldoInicial ?? hojeISO())
   const pagadoras = contas.filter((c) => c.tipo !== 'cartao' && !c.arquivada)
-  const [limite, setLimite] = useState<number | null>(inicial?.limite ?? null)
+  const [limite, setLimite] = useState(inicial?.limite ? inicial.limite.toFixed(2).replace('.', ',') : '')
   const [fechamento, setFechamento] = useState(String(inicial?.diaFechamento ?? 3))
   const [vencimento, setVencimento] = useState(String(inicial?.diaVencimento ?? 10))
   const [contaPagamentoId, setContaPagamentoId] = useState(inicial?.contaPagamentoId ?? pagadoras[0]?.id ?? '')
@@ -31,7 +30,7 @@ export default function FormConta({ inicial, tipoInicial, contas, onSalvar, onFe
     e.preventDefault()
     if (!nome.trim()) return setErro(cartao ? 'Informe o nome do cartão.' : 'Informe o nome da conta.')
     if (cartao) {
-      const lim = limite ?? 0
+      const lim = limite.trim() ? parseValor(limite) : 0
       const df = Math.round(Number(fechamento))
       const dv = Math.round(Number(vencimento))
       if (!Number.isFinite(lim) || lim < 0) return setErro('Limite inválido.')
@@ -42,7 +41,7 @@ export default function FormConta({ inicial, tipoInicial, contas, onSalvar, onFe
         limite: Math.round(lim * 100) / 100, diaFechamento: df, diaVencimento: dv, contaPagamentoId,
       })
     }
-    const num = saldo ?? 0
+    const num = saldo.trim() ? parseValor(saldo) : 0
     if (!Number.isFinite(num)) return setErro('Saldo inicial inválido.')
     if (!data) return setErro('Informe a data do saldo inicial.')
     onSalvar({ ...inicial, id: inicial?.id ?? uid(), nome: nome.trim(), tipo, saldoInicial: Math.round(num * 100) / 100, dataSaldoInicial: data })
@@ -75,7 +74,7 @@ export default function FormConta({ inicial, tipoInicial, contas, onSalvar, onFe
         <>
           <label className="campo">
             <span>Limite (R$)</span>
-            <InputMoeda valor={limite} onChange={setLimite} aria-label="Limite" />
+            <input inputMode="decimal" value={limite} onChange={(e) => setLimite(e.target.value)} placeholder="0,00" aria-label="Limite" />
           </label>
           <div className="linha">
             <label className="campo">
@@ -101,7 +100,7 @@ export default function FormConta({ inicial, tipoInicial, contas, onSalvar, onFe
           <div className="linha">
             <label className="campo">
               <span>Saldo inicial (R$)</span>
-              <InputMoeda valor={saldo} onChange={setSaldo} permitirNegativo aria-label="Saldo inicial" />
+              <input inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="0,00" />
             </label>
             <label className="campo">
               <span>Data do saldo inicial</span>
