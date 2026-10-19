@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import type { Categoria, Lancamento, Tipo } from '../types'
 import { uid } from '../utils'
+import { IconeCategoria } from '../ui'
 
 interface Props {
   categorias: Categoria[]
@@ -8,10 +10,12 @@ interface Props {
   lancamentos: Lancamento[]
 }
 
+const CORES = ['#7c5cff', '#22c3dd', '#16a34a', '#f59e0b', '#ef4444', '#ec4899', '#0ea5e9', '#84cc16', '#f97316', '#64748b']
+
 export default function Categorias({ categorias, setCategorias, lancamentos }: Props) {
   const [nome, setNome] = useState('')
   const [tipo, setTipo] = useState<Tipo>('despesa')
-  const [cor, setCor] = useState('#0f766e')
+  const [cor, setCor] = useState(CORES[0])
 
   const adicionar = (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,35 +40,44 @@ export default function Categorias({ categorias, setCategorias, lancamentos }: P
     setCategorias((cs) => cs.map((x) => (x.id === id ? { ...x, ...campos } : x)))
 
   const grupo = (t: Tipo) => (
-    <div className="bloco">
+    <section className="cartao">
       <h3>{t === 'receita' ? 'Receitas' : 'Despesas'}</h3>
       <ul className="lista-cat">
         {categorias.filter((c) => c.tipo === t).map((c) => (
           <li key={c.id}>
-            <input type="color" value={c.cor} onChange={(e) => atualizar(c.id, { cor: e.target.value })} aria-label={`Cor de ${c.nome}`} />
+            <label className="trocar-cor" title="Mudar cor">
+              <IconeCategoria cat={c} tamanho={40} />
+              <input type="color" value={c.cor} onChange={(e) => atualizar(c.id, { cor: e.target.value })} aria-label={`Cor de ${c.nome}`} />
+            </label>
             <input className="nome-cat" defaultValue={c.nome} aria-label="Nome"
               onBlur={(e) => e.target.value.trim() && atualizar(c.id, { nome: e.target.value.trim() })} />
             <span className="usos">{usos(c.id)} uso(s)</span>
-            <button className="btn pequeno perigo" onClick={() => remover(c)}>Excluir</button>
+            <button className="btn-icone pequeno perigo" onClick={() => remover(c)} aria-label={`Excluir ${c.nome}`}><Trash2 size={15} /></button>
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   )
 
   return (
-    <div className="categorias">
-      <form className="bloco form-cat" onSubmit={adicionar}>
+    <div className="pagina">
+      <form className="cartao" onSubmit={adicionar}>
         <h3>Nova categoria</h3>
         <div className="filtros">
-          <input placeholder="Nome da categoria" value={nome} onChange={(e) => setNome(e.target.value)} aria-label="Nome da categoria" />
-          <select value={tipo} onChange={(e) => setTipo(e.target.value as Tipo)} aria-label="Tipo">
-            <option value="despesa">Despesa</option>
-            <option value="receita">Receita</option>
-          </select>
-          <input type="color" value={cor} onChange={(e) => setCor(e.target.value)} aria-label="Cor" />
-          <button className="btn primario" type="submit">Adicionar</button>
+          <input className="crescer" placeholder="Nome da categoria" value={nome} onChange={(e) => setNome(e.target.value)} aria-label="Nome da categoria" />
+          <div className="segmentado" role="group" aria-label="Tipo">
+            <button type="button" className={tipo === 'despesa' ? 'ativo' : ''} onClick={() => setTipo('despesa')}>Despesa</button>
+            <button type="button" className={tipo === 'receita' ? 'ativo' : ''} onClick={() => setTipo('receita')}>Receita</button>
+          </div>
+          <div className="paleta" role="radiogroup" aria-label="Cor">
+            {CORES.map((c) => (
+              <button type="button" key={c} role="radio" aria-checked={cor === c} aria-label={c}
+                className={cor === c ? 'ativo' : ''} style={{ background: c }} onClick={() => setCor(c)} />
+            ))}
+          </div>
+          <button className="btn primario" type="submit"><Plus size={16} /> Adicionar</button>
         </div>
+        <p className="kpi-nota">Dica: clique no ícone de uma categoria para mudar a cor, e no nome para renomear.</p>
       </form>
       <div className="grade-2">
         {grupo('despesa')}

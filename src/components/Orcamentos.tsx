@@ -1,5 +1,7 @@
+import { Target } from 'lucide-react'
 import type { Categoria, Lancamento, Orcamentos as Orc } from '../types'
-import { formatBRL, mesDe } from '../utils'
+import { mesDe, parseValor } from '../utils'
+import { Anel, IconeCategoria, Valor, useFmt } from '../ui'
 
 interface Props {
   mes: string
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export default function Orcamentos({ mes, lancamentos, categorias, orcamentos, setOrcamentos }: Props) {
+  const fmt = useFmt()
   const despesas = categorias.filter((c) => c.tipo === 'despesa')
   const gastoPor = (id: string) =>
     lancamentos
@@ -17,8 +20,7 @@ export default function Orcamentos({ mes, lancamentos, categorias, orcamentos, s
       .reduce((s, l) => s + l.valor, 0)
 
   const definir = (id: string, texto: string) => {
-    const t = texto.trim()
-    const num = Number(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t)
+    const num = parseValor(texto)
     setOrcamentos((o) => {
       const novo = { ...o }
       if (!texto.trim() || !Number.isFinite(num) || num <= 0) delete novo[id]
@@ -27,29 +29,54 @@ export default function Orcamentos({ mes, lancamentos, categorias, orcamentos, s
     })
   }
 
-  const totalLimite = despesas.reduce((s, c) => s + (orcamentos[c.id] ?? 0), 0)
-  const totalGasto = despesas.filter((c) => orcamentos[c.id]).reduce((s, c) => s + gastoPor(c.id), 0)
+  const comLimite = despesas.filter((c) => orcamentos[c.id])
+  const totalLimite = comLimite.reduce((s, c) => s + orcamentos[c.id], 0)
+  const totalGasto = comLimite.reduce((s, c) => s + gastoPor(c.id), 0)
+  const pctTotal = totalLimite > 0 ? (totalGasto / totalLimite) * 100 : 0
 
   return (
-    <div className="bloco">
-      <p className="ajuda">Defina um limite mensal para cada categoria de despesa. O limite vale para todos os meses.</p>
-      {totalLimite > 0 && (
-        <p className="resumo-orc">
-          Total orçado: <strong>{formatBRL(totalLimite)}</strong> · Gasto nessas categorias: <strong>{formatBRL(totalGasto)}</strong>
-        </p>
-      )}
-      <ul className="lista-orc">
+    <div className="pagina">
+      <section className="cartao resumo-orc">
+        <Anel pct={pctTotal} tamanho={96} espessura={10}
+          cor={pctTotal > 100 ? 'var(--vermelho)' : pctTotal >= 80 ? 'var(--amarelo)' : 'var(--verde)'} />
+        <div className="resumo-orc-texto">
+          <span className="kpi-rotulo"><Target size={15} /> Orçamento do mês</span>
+          {totalLimite > 0 ? (
+            <>
+              <strong className="mini-valor"><Valor v={totalGasto} /> <span className="de">de {fmt(totalLimite)}</span></strong>
+              <span className="kpi-nota">
+                {totalGasto > totalLimite
+                  ? `Você ultrapassou o orçamento em ${fmt(totalGasto - totalLimite)}`
+                  : `Ainda restam ${fmt(totalLimite - totalGasto)} para gastar · ${pctTotal.toFixed(0)}% usado`}
+              </span>
+            </>
+          ) : (
+            <span className="kpi-nota">Defina um limite mensal nas categorias abaixo. O limite vale para todos os meses.</span>
+          )}
+        </div>
+      </section>
+
+      <ul className="grade-orc">
         {despesas.map((c) => {
           const limite = orcamentos[c.id] ?? 0
           const gasto = gastoPor(c.id)
-          const pct = limite > 0 ? Math.min(100, (gasto / limite) * 100) : 0
-          const estado = limite === 0 ? '' : gasto > limite ? 'estourado' : gasto / limite >= 0.8 ? 'atencao' : 'ok'
+          const pct = limite > 0 ? (gasto / limite) * 100 : 0
+          const estado = limite === 0 ? '' : pct > 100 ? 'estourado' : pct >= 80 ? 'atencao' : 'ok'
           return (
-            <li key={c.id}>
+            <li key={c.id} className="cartao orc-item">
               <div className="orc-topo">
-                <span className="tag"><span className="bolinha" style={{ background: c.cor }} />{c.nome}</span>
-                <label className="orc-input">
-                  Limite R$
+                <IconeCategoria cat={c} tamanho={40} />
+                <div className="orc-nome">
+                  <strong>{c.nome}</strong>
+                  <span className="num">{fmt(gasto)} gasto</span>
+                </div>
+                {limite > 0 && <span className={`meta-pct ${estado}`}>{pct.toFixed(0)}%</span>}
+              </div>
+              <div className={`barra ${estado}`}><span style={{ width: `${Math.min(100, pct)}%` }} /></div>
+              <label className="orc-input">
+                <span>Limite mensal</span>
+                <span className="campo-moeda">
+                  <em>R$</em>
                   <input
                     inputMode="decimal"
                     defaultValue={limite ? limite.toFixed(2).replace('.', ',') : ''}
@@ -58,20 +85,12 @@ export default function Orcamentos({ mes, lancamentos, categorias, orcamentos, s
                     onBlur={(e) => definir(c.id, e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                   />
-                </label>
-              </div>
-              {limite > 0 ? (
-                <>
-                  <div className={`barra ${estado}`} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-                    <span style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="orc-info">
-                    <span>{formatBRL(gasto)} de {formatBRL(limite)}</span>
-                    <span>{gasto > limite ? `Excedeu ${formatBRL(gasto - limite)}` : `Restam ${formatBRL(limite - gasto)}`}</span>
-                  </div>
-                </>
-              ) : (
-                <div className="orc-info"><span>Gasto no mês: {formatBRL(gasto)}</span></div>
+                </span>
+              </label>
+              {limite > 0 && (
+                <span className={`orc-status ${estado}`}>
+                  {gasto > limite ? `Excedeu ${fmt(gasto - limite)}` : `Restam ${fmt(limite - gasto)}`}
+                </span>
               )}
             </li>
           )

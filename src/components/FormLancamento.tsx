@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { ArrowDownRight, ArrowUpRight, X } from 'lucide-react'
 import type { Categoria, Lancamento, Tipo } from '../types'
-import { hojeISO, mesAtual, uid } from '../utils'
+import { hojeISO, mesAtual, parseValor, uid } from '../utils'
+import { IconeCategoria } from '../ui'
 
 interface Props {
   inicial: Lancamento | null
@@ -38,12 +40,9 @@ export default function FormLancamento({ inicial, mesPadrao, categorias, onSalva
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault()
-    const texto = valor.trim()
-    // aceita "1.234,56", "1234,56" e "1234.56"
-    const normal = texto.includes(',') ? texto.replace(/\./g, '').replace(',', '.') : texto
-    const num = Number(normal)
-    if (!descricao.trim()) return setErro('Informe uma descrição.')
+    const num = parseValor(valor)
     if (!Number.isFinite(num) || num <= 0) return setErro('Informe um valor maior que zero.')
+    if (!descricao.trim()) return setErro('Informe uma descrição.')
     if (!data) return setErro('Informe a data.')
     if (!categoriaId) return setErro('Escolha uma categoria.')
     onSalvar(
@@ -54,53 +53,75 @@ export default function FormLancamento({ inicial, mesPadrao, categorias, onSalva
 
   return (
     <div className="modal-fundo" onClick={onFechar}>
-      <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={enviar}>
-        <h2>{inicial ? 'Editar lançamento' : 'Novo lançamento'}</h2>
+      <form className={`modal tipo-${tipo}`} onClick={(e) => e.stopPropagation()} onSubmit={enviar} aria-label="Lançamento">
+        <div className="modal-cab">
+          <h2>{inicial ? 'Editar lançamento' : 'Novo lançamento'}</h2>
+          <button type="button" className="btn-icone pequeno" onClick={onFechar} aria-label="Fechar"><X size={18} /></button>
+        </div>
 
         <div className="alternador" role="group" aria-label="Tipo">
-          <button type="button" className={tipo === 'despesa' ? 'ativo despesa' : ''} onClick={() => setTipo('despesa')}>Despesa</button>
-          <button type="button" className={tipo === 'receita' ? 'ativo receita' : ''} onClick={() => setTipo('receita')}>Receita</button>
+          <button type="button" className={tipo === 'despesa' ? 'ativo despesa' : ''} onClick={() => setTipo('despesa')}>
+            <ArrowDownRight size={17} /> Despesa
+          </button>
+          <button type="button" className={tipo === 'receita' ? 'ativo receita' : ''} onClick={() => setTipo('receita')}>
+            <ArrowUpRight size={17} /> Receita
+          </button>
         </div>
 
-        <label>Descrição
-          <input autoFocus value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: Aluguel, mercado, salário" />
+        <label className="valor-grande">
+          <span>Valor</span>
+          <div>
+            <em>R$</em>
+            <input autoFocus inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" aria-label="Valor" />
+          </div>
         </label>
 
+        <label className="campo">
+          <span>Descrição</span>
+          <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: Aluguel, mercado, salário" />
+        </label>
+
+        <div className="campo">
+          <span>Categoria</span>
+          <div className="chips-cat" role="radiogroup" aria-label="Categoria">
+            {cats.map((c) => (
+              <button type="button" key={c.id} role="radio" aria-checked={categoriaId === c.id}
+                className={categoriaId === c.id ? 'ativo' : ''} onClick={() => setCategoriaId(c.id)}
+                style={categoriaId === c.id ? { borderColor: c.cor } : undefined}>
+                <IconeCategoria cat={c} tamanho={26} />
+                {c.nome}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="linha">
-          <label>Valor (R$)
-            <input inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
-          </label>
-          <label>Data
+          <label className="campo">
+            <span>Data</span>
             <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
           </label>
-        </div>
-
-        <label>Categoria
-          <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
-            {cats.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
-        </label>
-
-        <div className="linha">
-          <label className="check">
-            <input type="checkbox" checked={pago} onChange={(e) => setPago(e.target.checked)} />
-            {tipo === 'despesa' ? 'Já foi paga' : 'Já foi recebida'}
-          </label>
           {!inicial && (
-            <label>Repetir por
+            <label className="campo">
+              <span>Repetir</span>
               <select value={repetir} onChange={(e) => setRepetir(Number(e.target.value))}>
-                <option value={1}>Somente este mês</option>
-                {[2, 3, 6, 12, 24].map((n) => <option key={n} value={n}>{n} meses</option>)}
+                <option value={1}>Não repetir</option>
+                {[2, 3, 6, 12, 24].map((n) => <option key={n} value={n}>Por {n} meses</option>)}
               </select>
             </label>
           )}
         </div>
 
+        <label className="interruptor">
+          <input type="checkbox" checked={pago} onChange={(e) => setPago(e.target.checked)} />
+          <span className="trilho"><span /></span>
+          {tipo === 'despesa' ? 'Já foi paga' : 'Já foi recebida'}
+        </label>
+
         {erro && <p className="erro" role="alert">{erro}</p>}
 
         <div className="acoes">
           <button type="button" className="btn" onClick={onFechar}>Cancelar</button>
-          <button type="submit" className="btn primario">Salvar</button>
+          <button type="submit" className="btn primario">Salvar lançamento</button>
         </div>
       </form>
     </div>
