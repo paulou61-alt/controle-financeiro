@@ -11,6 +11,9 @@ Sistema de controle financeiro pessoal feito com React + Vite + TypeScript, pron
 - **Parcelamento e recorrência**: compras em N vezes (valor total ou da parcela), despesas e receitas fixas semanais, quinzenais, mensais ou anuais, com ou sem data de fim (as sem fim são geradas automaticamente 12 meses à frente). Ao editar ou excluir, escolha entre somente esta, esta e as próximas, ou todas.
 - **Cartão de crédito**: limite, dia de fechamento e vencimento, faturas calculadas automaticamente, compras parceladas no cartão, pagamento total ou parcial da fatura pela conta escolhida. As compras não alteram o saldo da conta; o pagamento da fatura sim.
 - **Importar extrato (OFX/CSV)**: lido no próprio navegador, sem conectar ao banco. Detecta duplicados, sugere categorias pelo histórico e por palavras-chave e concilia com lançamentos pendentes.
+- **Clientes e fornecedores**: cadastro com pessoa física (CPF) ou jurídica (CNPJ, inclusive o novo CNPJ alfanumérico), e-mail e telefone, com validação de dígitos verificadores e totais recebidos, pagos e em aberto por cadastro. O nome digitado no lançamento é ligado ao cadastro automaticamente.
+- **Dados cadastrais** do titular (pessoa física ou jurídica) em Configurações.
+- **Campos com máscara**: valores em reais formatados enquanto digita, CPF, CNPJ e telefone.
 - **Orçamentos** por categoria, **categorias** personalizáveis, tema claro/escuro, modo privacidade e dados de exemplo.
 - **Login e senha** com cadastro, confirmação por e-mail, recuperação de senha e troca de senha.
 - Dados de cada usuário salvos na nuvem (Supabase) com salvamento automático. Cada pessoa só enxerga os próprios dados.

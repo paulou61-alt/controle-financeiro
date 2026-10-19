@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { ArrowDown } from 'lucide-react'
 import type { ContaFinanceira, Lancamento, Transferencia } from '../types'
 import { saldoConta } from '../financas'
-import { hojeISO, parseValor, uid } from '../utils'
+import { hojeISO, uid } from '../utils'
 import { useFmt } from '../ui'
 import { Modal } from './comuns'
+import { InputMoeda } from './campos'
 
 interface Props {
   contas: ContaFinanceira[]
@@ -21,7 +22,7 @@ export default function FormTransferencia({ contas, lancamentos, transferencias,
   const ativas = contas.filter((c) => !c.arquivada && c.tipo !== 'cartao')
   const [origemId, setOrigemId] = useState(ativas.some((c) => c.id === origemInicial) ? origemInicial! : ativas[0]?.id ?? '')
   const [destinoId, setDestinoId] = useState(ativas.find((c) => c.id !== (origemInicial || ativas[0]?.id))?.id ?? '')
-  const [valor, setValor] = useState('')
+  const [valor, setValor] = useState<number | null>(null)
   const [data, setData] = useState(hojeISO())
   const [descricao, setDescricao] = useState('')
   const [erro, setErro] = useState('')
@@ -33,7 +34,7 @@ export default function FormTransferencia({ contas, lancamentos, transferencias,
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault()
-    const num = parseValor(valor)
+    const num = valor ?? NaN
     if (ativas.length < 2) return setErro('Cadastre pelo menos duas contas para transferir.')
     if (!origemId || !destinoId) return setErro('Escolha a conta de origem e a de destino.')
     if (origemId === destinoId) return setErro('A conta de origem e a de destino precisam ser diferentes.')
@@ -50,7 +51,7 @@ export default function FormTransferencia({ contas, lancamentos, transferencias,
         <span>Valor</span>
         <div>
           <em>R$</em>
-          <input autoFocus inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" aria-label="Valor" />
+          <InputMoeda autoFocus valor={valor} onChange={setValor} aria-label="Valor" />
         </div>
       </label>
 

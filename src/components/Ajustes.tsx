@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
-import { Download, KeyRound, Loader2, LogOut, Monitor, Moon, Palette, Sparkles, Sun, Trash2, Upload, User } from 'lucide-react'
+import { Download, IdCard, KeyRound, Loader2, LogOut, Monitor, Moon, Palette, Sparkles, Sun, Trash2, Upload, User } from 'lucide-react'
 import { supabase, traduzirErro } from '../supabase'
-import type { Backup, Categoria, ContaFinanceira, Lancamento, Orcamentos, Transferencia } from '../types'
+import type { Backup, Categoria, ContaFinanceira, Contato, Lancamento, Orcamentos, Perfil, Serie, Transferencia } from '../types'
+import { documentoCompleto, normalizarDocumento, rotuloDocumento, validarDocumento, validarTelefone } from '../formatos'
+import { InputDocumento, InputTelefone, SeletorPessoa } from './campos'
 import type { Tema } from '../App'
 import { baixarArquivo, hojeISO } from '../utils'
 
@@ -20,6 +22,49 @@ interface Props {
   onCarregarExemplo: () => void
   email: string
   onSair: () => void
+  perfil: Perfil
+  setPerfil: (p: Perfil) => void
+  contatos: Contato[]
+  series: Serie[]
+}
+
+function DadosCadastrais({ perfil, onSalvar }: { perfil: Perfil; onSalvar: (p: Perfil) => void }) {
+  const [rascunho, setRascunho] = useState<Perfil>(perfil)
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
+  const pf = rascunho.pessoa === 'fisica'
+  const alterado = JSON.stringify(rascunho) !== JSON.stringify(perfil)
+
+  const salvar = (e: React.FormEvent) => {
+    e.preventDefault()
+    const doc = rascunho.documento ?? ''
+    if (doc && (!documentoCompleto(doc, rascunho.pessoa) || !validarDocumento(doc, rascunho.pessoa)))
+      return setMsg({ ok: false, texto: `${rotuloDocumento(rascunho.pessoa)} inválido.` })
+    if (rascunho.telefone && !validarTelefone(rascunho.telefone)) return setMsg({ ok: false, texto: 'Telefone inválido.' })
+    onSalvar({ ...rascunho, nomeCompleto: rascunho.nomeCompleto?.trim() || undefined, documento: doc || undefined, telefone: rascunho.telefone || undefined })
+    setMsg({ ok: true, texto: 'Dados cadastrais salvos.' })
+  }
+
+  return (
+    <form className="form-coluna" onSubmit={salvar} noValidate>
+      <div className="campo">
+        <span>Este controle é de</span>
+        <SeletorPessoa valor={rascunho.pessoa} onChange={(pessoa) => setRascunho((r) => ({ ...r, pessoa, documento: r.documento ? normalizarDocumento(r.documento, pessoa) : undefined }))} />
+      </div>
+      <label className="campo">
+        <span>{pf ? 'Nome completo' : 'Razão social'} <em className="opcional">(opcional)</em></span>
+        <input value={rascunho.nomeCompleto ?? ''} onChange={(e) => setRascunho((r) => ({ ...r, nomeCompleto: e.target.value }))}
+          placeholder={pf ? 'Seu nome completo' : 'Nome da empresa'} maxLength={100} aria-label={pf ? 'Nome completo' : 'Razão social'} />
+      </label>
+      <div className="linha">
+        <InputDocumento pessoa={rascunho.pessoa} valor={rascunho.documento ?? ''} onChange={(documento) => setRascunho((r) => ({ ...r, documento }))} />
+        <InputTelefone valor={rascunho.telefone ?? ''} onChange={(telefone) => setRascunho((r) => ({ ...r, telefone }))} />
+      </div>
+      {msg && <p className={msg.ok ? 'msg' : 'erro'} role="status">{msg.texto}</p>}
+      <div className="acoes-esq">
+        <button className="btn primario" type="submit" disabled={!alterado}>Salvar dados cadastrais</button>
+      </div>
+    </form>
+  )
 }
 
 export default function Ajustes(p: Props) {
@@ -43,7 +88,7 @@ export default function Ajustes(p: Props) {
   const exportar = () => {
     const dados: Backup = {
       versao: 2, categorias: p.categorias, lancamentos: p.lancamentos, orcamentos: p.orcamentos,
-      contas: p.contas, transferencias: p.transferencias,
+      contas: p.contas, transferencias: p.transferencias, contatos: p.contatos, perfil: p.perfil, series: p.series,
     }
     baixarArquivo(`controle-financeiro-backup-${hojeISO()}.json`, JSON.stringify(dados, null, 2), 'application/json')
     setMsg('Backup baixado.')
@@ -104,6 +149,12 @@ export default function Ajustes(p: Props) {
             <button className="btn perigo" type="button" onClick={p.onSair}><LogOut size={16} /> Sair da conta</button>
           </div>
         </form>
+      </section>
+
+      <section className="cartao">
+        <h3><IdCard size={18} /> Dados cadastrais</h3>
+        <p className="ajuda">Informe se você usa o sistema como pessoa física ou como empresa.</p>
+        <DadosCadastrais perfil={p.perfil} onSalvar={p.setPerfil} />
       </section>
 
       <section className="cartao">

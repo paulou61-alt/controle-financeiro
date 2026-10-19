@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, Download, Plus, Scale, Search, Upload } from 'lucide-react'
-import type { Categoria, ContaFinanceira, Lancamento, Tipo } from '../types'
+import type { Categoria, ContaFinanceira, Contato, Lancamento, Tipo } from '../types'
 import { noPeriodo, situacao, type Periodo, type Situacao } from '../financas'
 import { baixarArquivo, formatData } from '../utils'
+import { formatarDocumento } from '../formatos'
 import { Valor, useFmt } from '../ui'
 import { FiltroConta, FiltroPeriodo, LinhaLancamento } from './comuns'
 
@@ -21,6 +22,7 @@ interface Props {
   onBaixa: (id: string) => void
   onReverter: (id: string) => void
   onNovo: (tipo: Tipo) => void
+  contatos?: Contato[]
   onImportar: () => void
 }
 
@@ -63,7 +65,7 @@ export default function Lancamentos(p: Props) {
     const esc = (s = '') => `"${s.replace(/"/g, '""')}"`
     const rotSit = { realizado: 'Realizado', pendente: 'Pendente', atrasado: 'Atrasado' }
     const linhas = [
-      ['Vencimento', 'Tipo', 'Descrição', 'Parcela', 'Categoria', 'Conta', 'Cliente/Fornecedor', 'Valor', 'Situação', 'Data pagamento/recebimento', 'Observações'].join(';'),
+      ['Vencimento', 'Tipo', 'Descrição', 'Parcela', 'Categoria', 'Conta', 'Cliente/Fornecedor', 'CPF/CNPJ', 'Valor', 'Situação', 'Data pagamento/recebimento', 'Observações'].join(';'),
       ...lista.map((l) =>
         [
           formatData(l.data),
@@ -73,6 +75,7 @@ export default function Lancamentos(p: Props) {
           esc(catPorId.get(l.categoriaId)?.nome),
           esc(contaPorId.get(l.contaId)?.nome),
           esc(l.contato),
+          (() => { const c = p.contatos?.find((x) => x.id === l.contatoId); return c ? formatarDocumento(c.documento, c.pessoa) : '' })(),
           (l.tipo === 'receita' ? l.valor : -l.valor).toFixed(2).replace('.', ','),
           rotSit[situacao(l)],
           l.dataPagamento ? formatData(l.dataPagamento) : '',

@@ -3,9 +3,10 @@ import { ArrowDownRight, ArrowUpRight, CreditCard } from 'lucide-react'
 import type { Categoria, ContaFinanceira, Frequencia, Lancamento, Tipo } from '../types'
 import { ehCartao, faturaDaCompra } from '../financas'
 import { FREQUENCIAS, type Repeticao } from '../series'
-import { formatBRL, formatData, hojeISO, parseValor, rotuloMes, uid } from '../utils'
+import { formatBRL, formatData, hojeISO, rotuloMes, uid } from '../utils'
 import { IconeCategoria } from '../ui'
 import { Modal, SeloSerie } from './comuns'
+import { InputMoeda } from './campos'
 
 interface Props {
   inicial: Lancamento | null
@@ -30,7 +31,7 @@ export default function FormLancamento({ inicial, tipoInicial, contaInicial, cat
     [contas, inicial, despesa],
   )
   const [descricao, setDescricao] = useState(inicial?.descricao ?? '')
-  const [valor, setValor] = useState(inicial ? inicial.valor.toFixed(2).replace('.', ',') : '')
+  const [valor, setValor] = useState<number | null>(inicial?.valor ?? null)
   const [data, setData] = useState(inicial?.data ?? hoje)
   const [categoriaId, setCategoriaId] = useState(inicial?.categoriaId ?? '')
   const [contaId, setContaId] = useState(
@@ -60,7 +61,7 @@ export default function FormLancamento({ inicial, tipoInicial, contaInicial, cat
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipo])
 
-  const num = parseValor(valor)
+  const num = valor ?? NaN
   const nParcelas = Math.round(Number(parcelas))
   const previaParcela = Number.isFinite(num) && num > 0 && nParcelas >= 2
     ? valorTotal ? `${nParcelas}x de ${formatBRL(num / nParcelas)} · total ${formatBRL(num)}` : `${nParcelas}x de ${formatBRL(num)} · total ${formatBRL(num * nParcelas)}`
@@ -121,7 +122,7 @@ export default function FormLancamento({ inicial, tipoInicial, contaInicial, cat
         <span>{modoRep === 'parcelado' ? (valorTotal ? 'Valor total da compra' : 'Valor de cada parcela') : 'Valor'}</span>
         <div>
           <em>R$</em>
-          <input autoFocus inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" aria-label="Valor" />
+          <InputMoeda autoFocus valor={valor} onChange={setValor} aria-label="Valor" />
         </div>
       </label>
 
