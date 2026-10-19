@@ -1,7 +1,8 @@
 import { Target } from 'lucide-react'
 import type { Categoria, Lancamento, Orcamentos as Orc } from '../types'
-import { mesDe, parseValor } from '../utils'
+import { mesDe } from '../utils'
 import { Anel, IconeCategoria, Valor, useFmt } from '../ui'
+import { InputMoeda } from './campos'
 
 interface Props {
   mes: string
@@ -19,12 +20,12 @@ export default function Orcamentos({ mes, lancamentos, categorias, orcamentos, s
       .filter((l) => l.tipo === 'despesa' && l.categoriaId === id && mesDe(l.data) === mes)
       .reduce((s, l) => s + l.valor, 0)
 
-  const definir = (id: string, texto: string) => {
-    const num = parseValor(texto)
+  // salva a cada dígito; apagar o valor remove o limite
+  const definir = (id: string, valor: number | null) => {
     setOrcamentos((o) => {
       const novo = { ...o }
-      if (!texto.trim() || !Number.isFinite(num) || num <= 0) delete novo[id]
-      else novo[id] = num
+      if (!valor || valor <= 0) delete novo[id]
+      else novo[id] = valor
       return novo
     })
   }
@@ -77,14 +78,7 @@ export default function Orcamentos({ mes, lancamentos, categorias, orcamentos, s
                 <span>Limite mensal</span>
                 <span className="campo-moeda">
                   <em>R$</em>
-                  <input
-                    inputMode="decimal"
-                    defaultValue={limite ? limite.toFixed(2).replace('.', ',') : ''}
-                    key={`${c.id}-${limite}`}
-                    placeholder="sem limite"
-                    onBlur={(e) => definir(c.id, e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                  />
+                  <InputMoeda valor={limite || null} onChange={(v) => definir(c.id, v)} placeholder="sem limite" aria-label={`Limite de ${c.nome}`} />
                 </span>
               </label>
               {limite > 0 && (

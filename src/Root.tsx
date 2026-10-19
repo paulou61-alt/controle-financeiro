@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { CheckCircle2, CloudOff, KeyRound, Loader2, Lock, Settings } from 'lucide-react'
 import { supabase, supabaseConfigurado, traduzirErro } from './supabase'
-import { useDadosNuvem, type Dados } from './useDadosNuvem'
+import { normalizarDados, useDadosNuvem, type Dados } from './useDadosNuvem'
 import { gerarExemplo } from './exemplo'
 import { CATEGORIAS_PADRAO } from './utils'
 import Login from './components/Login'
@@ -110,7 +110,7 @@ function AreaLogada({ user }: { user: User }) {
       setDados={demo ? setDemoDados : setDados}
       status={demo ? 'salvo' : status}
       emDemo={!!demo}
-      onEntrarDemo={() => setDemo({ ...dados, categorias: CATEGORIAS_PADRAO, ...gerarExemplo() })}
+      onEntrarDemo={() => setDemo(normalizarDados({ ...dados, categorias: CATEGORIAS_PADRAO, contatos: [], ...gerarExemplo() }, dados.nome))}
       onSairDemo={() => setDemo(null)}
       onTentarSalvar={tentarNovamente}
       email={user.email ?? ''}

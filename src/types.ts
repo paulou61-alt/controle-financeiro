@@ -1,5 +1,30 @@
 export type Tipo = 'receita' | 'despesa'
+import type { TipoPessoa } from './formatos'
+
 export type TipoConta = 'banco' | 'caixa' | 'carteira' | 'cartao'
+export type PapelContato = 'cliente' | 'fornecedor' | 'ambos'
+
+export interface Contato {
+  id: string
+  nome: string
+  papel: PapelContato
+  pessoa: TipoPessoa
+  /** CPF ou CNPJ sem pontuação */
+  documento?: string
+  email?: string
+  /** Somente dígitos, com DDD */
+  telefone?: string
+  observacoes?: string
+}
+
+/** Dados do titular da conta (quem usa o sistema) */
+export interface Perfil {
+  pessoa: TipoPessoa
+  /** Nome completo ou razão social */
+  nomeCompleto?: string
+  documento?: string
+  telefone?: string
+}
 export type Frequencia = 'semanal' | 'quinzenal' | 'mensal' | 'anual'
 
 export interface Categoria {
@@ -22,8 +47,9 @@ export interface Lancamento {
   pago: boolean
   /** Data em que foi pago ou recebido, quando realizado */
   dataPagamento?: string
-  /** Cliente (receita) ou fornecedor (despesa) */
+  /** Nome do cliente (receita) ou fornecedor (despesa) */
   contato?: string
+  contatoId?: string
   observacoes?: string
   /** Lançamentos parcelados ou recorrentes compartilham a mesma série */
   serieId?: string
@@ -82,4 +108,6 @@ export interface Backup {
   contas?: ContaFinanceira[]
   transferencias?: Transferencia[]
   series?: Serie[]
+  contatos?: Contato[]
+  perfil?: Perfil
 }

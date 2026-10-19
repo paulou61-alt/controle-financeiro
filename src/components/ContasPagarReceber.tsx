@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, CalendarClock, CheckCircle2, Clock, Plus, Search, type LucideIcon } from 'lucide-react'
-import type { Categoria, ContaFinanceira, Lancamento, Tipo } from '../types'
+import type { Categoria, ContaFinanceira, Contato, Lancamento, Tipo } from '../types'
 import { ehCartao, noPeriodo, rotuloPeriodo, type Fatura, type Periodo } from '../financas'
 import { hojeISO } from '../utils'
 import { useFmt } from '../ui'
@@ -22,6 +22,7 @@ interface Props {
   onBaixa: (id: string) => void
   onReverter: (id: string) => void
   onNovo: (tipo: Tipo) => void
+  contatos?: Contato[]
   faturas: Fatura[]
   onPagarFatura: (f: Fatura) => void
   onAbrirFatura: (f: Fatura) => void
