@@ -17,7 +17,8 @@ interface Props {
 
 export default function FormTransferencia({ contas, lancamentos, transferencias, origemInicial, onSalvar, onFechar }: Props) {
   const fmt = useFmt()
-  const ativas = contas.filter((c) => !c.arquivada)
+  // cartões recebem pagamento pela fatura, não por transferência comum
+  const ativas = contas.filter((c) => !c.arquivada && c.tipo !== 'cartao')
   const [origemId, setOrigemId] = useState(ativas.some((c) => c.id === origemInicial) ? origemInicial! : ativas[0]?.id ?? '')
   const [destinoId, setDestinoId] = useState(ativas.find((c) => c.id !== (origemInicial || ativas[0]?.id))?.id ?? '')
   const [valor, setValor] = useState('')

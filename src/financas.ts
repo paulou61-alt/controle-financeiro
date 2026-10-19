@@ -97,8 +97,89 @@ export function saldoConta(conta: ContaFinanceira, lancamentos: Lancamento[], tr
 export const temHistorico = (contaId: string, lancamentos: Lancamento[], transferencias: Transferencia[]) =>
   lancamentos.some((l) => l.contaId === contaId) || transferencias.some((t) => t.origemId === contaId || t.destinoId === contaId)
 
+/* ---------- Cartão de crédito ---------- */
+
+export const ehCartao = (c?: ContaFinanceira) => c?.tipo === 'cartao'
+
+const dataNoMes = (a: number, mesIndex: number, dia: number) => {
+  const base = new Date(a, mesIndex, 1)
+  const ultimo = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate()
+  return `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(Math.min(dia, ultimo))}`
+}
+
+/** Compras a partir do dia de fechamento entram na fatura seguinte */
+export function faturaDaCompra(c: ContaFinanceira, data: string) {
+  const fech = c.diaFechamento ?? 1
+  const venc = c.diaVencimento ?? 10
+  const [a, m, d] = data.split('-').map(Number)
+  const mesFech = d >= fech ? m : m - 1 // índice 0-based do mês de fechamento
+  const fechamento = dataNoMes(a, mesFech, fech)
+  const vencimento = dataNoMes(a, venc > fech ? mesFech : mesFech + 1, venc)
+  return { chave: vencimento.slice(0, 7), fechamento, vencimento }
+}
+
+export type StatusFatura = 'aberta' | 'fechada' | 'vencida' | 'paga' | 'futura'
+
+export interface Fatura {
+  cartao: ContaFinanceira
+  chave: string
+  fechamento: string
+  vencimento: string
+  compras: Lancamento[]
+  total: number
+  pago: number
+  restante: number
+  status: StatusFatura
+}
+
+/** Faturas do cartão; pagamentos (transferências para o cartão) quitam as faturas mais antigas primeiro */
+export function faturasDoCartao(c: ContaFinanceira, lancamentos: Lancamento[], transferencias: Transferencia[], hoje = hojeISO()): Fatura[] {
+  const grupos = new Map<string, Fatura>()
+  for (const l of lancamentos) {
+    if (l.contaId !== c.id) continue
+    const f = faturaDaCompra(c, l.data)
+    const g = grupos.get(f.chave) ?? { cartao: c, ...f, compras: [], total: 0, pago: 0, restante: 0, status: 'futura' as StatusFatura }
+    g.compras.push(l)
+    g.total += l.tipo === 'despesa' ? l.valor : -l.valor
+    grupos.set(f.chave, g)
+  }
+  // a fatura atual aparece mesmo vazia
+  const atual = faturaDaCompra(c, hoje)
+  if (!grupos.has(atual.chave)) grupos.set(atual.chave, { cartao: c, ...atual, compras: [], total: 0, pago: 0, restante: 0, status: 'aberta' })
+
+  let credito = Math.max(0, c.saldoInicial) + transferencias.reduce((s, t) => s + (t.destinoId === c.id ? t.valor : 0) - (t.origemId === c.id ? t.valor : 0), 0)
+  const lista = [...grupos.values()].sort((a, b) => a.vencimento.localeCompare(b.vencimento))
+  for (const f of lista) {
+    f.total = Math.round(f.total * 100) / 100
+    f.compras.sort((a, b) => b.data.localeCompare(a.data))
+    f.pago = Math.round(Math.min(Math.max(f.total, 0), Math.max(credito, 0)) * 100) / 100
+    credito -= f.pago
+    f.restante = Math.round((f.total - f.pago) * 100) / 100
+    f.status =
+      f.total > 0 && f.restante <= 0.004 ? 'paga'
+        : hoje > f.vencimento ? (f.restante > 0 ? 'vencida' : 'paga')
+        : f.chave === atual.chave ? 'aberta'
+        : hoje >= f.fechamento ? 'fechada'
+        : f.vencimento < atual.vencimento ? 'fechada' : 'futura'
+  }
+  return lista
+}
+
+/** Limite usado = tudo que ainda não foi pago, inclusive parcelas futuras */
+export function resumoCartao(c: ContaFinanceira, lancamentos: Lancamento[], transferencias: Transferencia[]) {
+  const faturas = faturasDoCartao(c, lancamentos, transferencias)
+  const usado = faturas.reduce((s, f) => s + Math.max(0, f.restante), 0)
+  const limite = c.limite ?? 0
+  const atual = faturas.find((f) => f.status === 'aberta')!
+  const aPagar = faturas.filter((f) => f.restante > 0 && (f.status === 'fechada' || f.status === 'vencida'))
+  return { faturas, usado, limite, disponivel: limite - usado, atual, aPagar }
+}
+
 /** Projeção diária do saldo: saldo atual + pendentes (vencidos entram hoje) + lançamentos e transferências futuras */
-export function previsaoSaldo(contas: ContaFinanceira[], lancamentos: Lancamento[], transferencias: Transferencia[], dias = 30) {
+export function previsaoSaldo(
+  contas: ContaFinanceira[], lancamentos: Lancamento[], transferencias: Transferencia[], dias = 30,
+  faturas: Pick<Fatura, 'cartao' | 'vencimento' | 'restante'>[] = [],
+) {
   const hoje = hojeISO()
   const limite = somarDias(hoje, dias)
   const ids = new Set(contas.map((c) => c.id))
@@ -124,6 +205,10 @@ export function previsaoSaldo(contas: ContaFinanceira[], lancamentos: Lancamento
     const sai = ids.has(t.origemId)
     if (entra && !sai) lancar(t.data, t.valor)
     if (sai && !entra) lancar(t.data, -t.valor)
+  }
+  // faturas de cartão em aberto saem da conta que as paga, no vencimento
+  for (const f of faturas) {
+    if (f.restante > 0 && f.cartao.contaPagamentoId && ids.has(f.cartao.contaPagamentoId) && f.vencimento <= limite) lancar(f.vencimento, -f.restante)
   }
 
   let acumulado = saldoAtual

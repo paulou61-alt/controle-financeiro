@@ -19,7 +19,9 @@ interface Props {
 }
 
 export default function ContasFinanceiras(p: Props) {
-  const { contas, lancamentos, transferencias } = p
+  const { lancamentos, transferencias } = p
+  // cartões têm tela própria
+  const contas = p.contas.filter((c) => c.tipo !== 'cartao')
   const fmt = useFmt()
   const [verArquivadas, setVerArquivadas] = useState(false)
   const [limite, setLimite] = useState(15)
@@ -28,7 +30,7 @@ export default function ContasFinanceiras(p: Props) {
   const arquivadas = contas.filter((c) => c.arquivada)
   const saldo = (c: ContaFinanceira) => saldoConta(c, lancamentos, transferencias)
   const total = contas.reduce((s, c) => s + saldo(c), 0)
-  const nome = (id: string) => contas.find((c) => c.id === id)?.nome ?? 'Conta removida'
+  const nome = (id: string) => p.contas.find((c) => c.id === id)?.nome ?? 'Conta removida'
   const movs = (id: string) => lancamentos.filter((l) => l.contaId === id).length + transferencias.filter((t) => t.origemId === id || t.destinoId === id).length
   const listaTransf = [...transferencias].sort((a, b) => b.data.localeCompare(a.data))
 

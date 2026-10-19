@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowDownRight, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight, Cloud, CloudOff, Eye, EyeOff, HandCoins,
-  Landmark, LayoutDashboard, List, Loader2, LogOut, Menu, Moon, Plus, Receipt, Settings, Sparkles, Sun, Tags, Target,
+  Landmark, CreditCard, LayoutDashboard, List, Loader2, LogOut, Menu, Moon, Plus, Receipt, Settings, Sparkles, Sun, Tags, Target,
   Trash2, Undo2, X,
   type LucideIcon,
 } from 'lucide-react'
-import type { Backup, Categoria, ContaFinanceira, Lancamento, Orcamentos, Tipo, Transferencia } from './types'
+import type { Backup, Categoria, ContaFinanceira, Lancamento, Orcamentos, Tipo, TipoConta, Transferencia } from './types'
 import { useLocalStorage } from './useLocalStorage'
 import { contaPrincipal, normalizarDados, type Dados, type StatusNuvem } from './useDadosNuvem'
-import { CATEGORIAS_PADRAO, hojeISO, mesAtual, rotuloMes, saudacao, somarMes, uid } from './utils'
+import { CATEGORIAS_PADRAO, hojeISO, mesAtual, rotuloMes, saudacao, somarMes } from './utils'
 import { gerarExemplo } from './exemplo'
-import { periodoDoPreset, rotuloPeriodo, saldoConta, temHistorico, type Periodo } from './financas'
+import { ehCartao, faturasDoCartao, periodoDoPreset, resumoCartao, rotuloPeriodo, saldoConta, temHistorico, type Fatura, type Periodo } from './financas'
+import { ajustarParaConta, aplicarEdicao, aplicarExclusao, criarLancamentos, estenderSeries, type Escopo, type Repeticao } from './series'
 import { PrivacidadeContext } from './ui'
 import Dashboard from './components/Dashboard'
 import Lancamentos from './components/Lancamentos'
@@ -22,8 +23,12 @@ import Ajustes from './components/Ajustes'
 import FormLancamento from './components/FormLancamento'
 import FormTransferencia from './components/FormTransferencia'
 import FormConta from './components/FormConta'
+import FormPagarFatura from './components/FormPagarFatura'
+import CartoesCredito from './components/CartoesCredito'
+import ImportarExtrato from './components/ImportarExtrato'
+import { EscolhaEscopo } from './components/comuns'
 
-export type Aba = 'painel' | 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'orcamentos' | 'categorias' | 'ajustes'
+export type Aba = 'painel' | 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes' | 'orcamentos' | 'categorias' | 'ajustes'
 export type Tema = 'sistema' | 'claro' | 'escuro'
 
 const ABAS: { id: Aba; rotulo: string; curto: string; icone: LucideIcon }[] = [
@@ -32,6 +37,7 @@ const ABAS: { id: Aba; rotulo: string; curto: string; icone: LucideIcon }[] = [
   { id: 'pagar', rotulo: 'Contas a pagar', curto: 'Pagar', icone: Receipt },
   { id: 'receber', rotulo: 'Contas a receber', curto: 'Receber', icone: HandCoins },
   { id: 'contas', rotulo: 'Contas financeiras', curto: 'Contas', icone: Landmark },
+  { id: 'cartoes', rotulo: 'Cartões de crédito', curto: 'Cartões', icone: CreditCard },
   { id: 'orcamentos', rotulo: 'Orçamentos', curto: 'Metas', icone: Target },
   { id: 'categorias', rotulo: 'Categorias', curto: 'Categ.', icone: Tags },
   { id: 'ajustes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings },
@@ -44,6 +50,7 @@ const SUBTITULOS: Record<Aba, string> = {
   pagar: 'Despesas pendentes, vencidas e pagas',
   receber: 'Receitas pendentes, em atraso e recebidas',
   contas: 'Bancos, caixa e carteiras digitais, com saldo e transferências',
+  cartoes: 'Faturas, limite e compras parceladas no cartão',
   orcamentos: 'Limites mensais para manter os gastos sob controle',
   categorias: 'Organize suas receitas e despesas do seu jeito',
   ajustes: 'Perfil, aparência e backup dos seus dados',
@@ -99,7 +106,10 @@ interface Props {
 /** Contas criadas pelo gerador de exemplo (versões anteriores gravavam o exemplo na conta) */
 const ehContaExemplo = (c: ContaFinanceira) => c.id.endsWith('-exemplo')
 
-type EdicaoLancamento = { inicial: Lancamento | null; tipo: Tipo }
+type EdicaoLancamento = { inicial: Lancamento | null; tipo: Tipo; conta?: string }
+type AcaoSerie =
+  | { acao: 'editar'; original: Lancamento; editado: Lancamento }
+  | { acao: 'excluir'; alvo: Lancamento }
 
 export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onSairDemo, onTentarSalvar, email, onSair }: Props) {
   const [aba, setAbaEstado] = useState<Aba>('painel')
@@ -111,11 +121,16 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
   const [editando, setEditando] = useState<EdicaoLancamento | null>(null)
   const [editandoConta, setEditandoConta] = useState<ContaFinanceira | null | 'nova'>(null)
   const [transferindo, setTransferindo] = useState<{ origem?: string } | null>(null)
+  const [tipoNovaConta, setTipoNovaConta] = useState<TipoConta | undefined>()
+  const [acaoSerie, setAcaoSerie] = useState<AcaoSerie | null>(null)
+  const [pagandoFatura, setPagandoFatura] = useState<Fatura | null>(null)
+  const [importando, setImportando] = useState<{ conta?: string } | null>(null)
+  const [cartaoAberto, setCartaoAberto] = useState<{ cartao?: string; fatura?: string }>({})
   const [tema, setTema] = useLocalStorage<Tema>('cf:tema', 'sistema')
   const [oculto, setOculto] = useLocalStorage('cf:oculto', false)
   const escuro = usaTemaEscuro(tema)
 
-  const { categorias, lancamentos, orcamentos, nome, contas, transferencias } = dados
+  const { categorias, lancamentos, orcamentos, nome, contas, transferencias, series } = dados
   const campo = <K extends keyof Dados>(k: K) => (v: Atualizacao<Dados[K]>) =>
     setDados((d) => ({ ...d, [k]: typeof v === 'function' ? (v as (x: Dados[K]) => Dados[K])(d[k]) : v }))
   const setCategorias = campo('categorias') as (v: Atualizacao<Categoria[]>) => void
@@ -140,38 +155,86 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
   const contaPorId = useMemo(() => new Map(contas.map((c) => [c.id, c])), [contas])
   const contatos = useMemo(() => [...new Set(lancamentos.map((l) => l.contato).filter((c): c is string => !!c))].sort(), [lancamentos])
   const hoje = hojeISO()
-  const vencidasPagar = lancamentos.filter((l) => !l.pago && l.tipo === 'despesa' && l.data < hoje).length
+  const faturas = useMemo(
+    () => contas.filter(ehCartao).flatMap((c) => faturasDoCartao(c, lancamentos, transferencias)),
+    [contas, lancamentos, transferencias],
+  )
+  const faturasVencidas = faturas.filter((f) => f.status === 'vencida').length
+  const vencidasPagar = lancamentos.filter((l) => !l.pago && l.tipo === 'despesa' && l.data < hoje).length + faturasVencidas
   const atrasadasReceber = lancamentos.filter((l) => !l.pago && l.tipo === 'receita' && l.data < hoje).length
-  const badges: Partial<Record<Aba, number>> = { pagar: vencidasPagar, receber: atrasadasReceber }
+  const badges: Partial<Record<Aba, number>> = { pagar: vencidasPagar, receber: atrasadasReceber, cartoes: faturasVencidas }
+
+  // mantém as recorrências sem fim sempre ~12 meses à frente
+  useEffect(() => {
+    const r = estenderSeries(series, lancamentos, contaPorId)
+    if (r) setDados((d) => ({ ...d, series: r.series, lancamentos: [...d.lancamentos, ...r.novos] }))
+  }, [series, lancamentos, contaPorId, setDados])
 
   /* ---------- Lançamentos ---------- */
 
-  const novo = (tipo: Tipo) => {
+  const novo = (tipo: Tipo, conta?: string) => {
     setFabAberto(false)
-    setEditando({ inicial: null, tipo })
+    setEditando({ inicial: null, tipo, conta })
   }
 
-  const salvarLancamento = (l: Lancamento, repetirMeses: number) => {
-    setLancamentos((atual) => {
-      const existe = atual.some((x) => x.id === l.id)
-      const base = existe ? atual.map((x) => (x.id === l.id ? l : x)) : [...atual, l]
-      if (existe || repetirMeses <= 1) return base
-      const extras: Lancamento[] = []
-      const [a, m, d] = l.data.split('-').map(Number)
-      for (let i = 1; i < repetirMeses; i++) {
-        const ultimoDia = new Date(a, m + i, 0).getDate()
-        const alvo = new Date(a, m - 1 + i, Math.min(d, ultimoDia))
-        const data = `${alvo.getFullYear()}-${String(alvo.getMonth() + 1).padStart(2, '0')}-${String(alvo.getDate()).padStart(2, '0')}`
-        extras.push({ ...l, id: uid(), data, pago: false, dataPagamento: undefined })
-      }
-      return [...base, ...extras]
-    })
+  const CAMPOS_SERIE = ['descricao', 'valor', 'categoriaId', 'contaId', 'contato', 'observacoes'] as const
+
+  const salvarLancamento = (l: Lancamento, rep: Repeticao) => {
+    const original = lancamentos.find((x) => x.id === l.id)
+    const editado = ajustarParaConta(l, contaPorId.get(l.contaId))
+    if (!original) {
+      const r = criarLancamentos(editado, rep, contaPorId.get(l.contaId))
+      setDados((d) => ({ ...d, lancamentos: [...d.lancamentos, ...r.lancamentos], series: r.serie ? [...d.series, r.serie] : d.series }))
+    } else if (original.serieId && CAMPOS_SERIE.some((k) => original[k] !== editado[k])) {
+      setAcaoSerie({ acao: 'editar', original, editado })
+    } else {
+      setLancamentos((a) => a.map((x) => (x.id === l.id ? editado : x)))
+    }
     setEditando(null)
   }
 
   const excluirLancamento = (id: string) => {
     const l = lancamentos.find((x) => x.id === id)
-    if (l && confirm(`Excluir "${l.descricao}"? Essa ação não pode ser desfeita.`)) setLancamentos((a) => a.filter((x) => x.id !== id))
+    if (!l) return
+    if (l.serieId && lancamentos.some((x) => x.serieId === l.serieId && x.id !== l.id)) return setAcaoSerie({ acao: 'excluir', alvo: l })
+    if (confirm(`Excluir "${l.descricao}"? Essa ação não pode ser desfeita.`)) setLancamentos((a) => a.filter((x) => x.id !== id))
+  }
+
+  const aplicarEscopo = (escopo: Escopo) => {
+    const a = acaoSerie
+    setAcaoSerie(null)
+    if (!a) return
+    if (a.acao === 'editar') {
+      setLancamentos((ls) => aplicarEdicao(ls, a.original, a.editado, escopo, contaPorId))
+      return
+    }
+    setDados((d) => {
+      const r = aplicarExclusao(d.lancamentos, d.series, a.alvo, escopo)
+      return { ...d, lancamentos: r.lancamentos, series: r.series }
+    })
+  }
+
+  const concluirImportacao = (novos: Lancamento[], baixas: { id: string; data: string; importId: string }[]) => {
+    const porId = new Map(baixas.map((b) => [b.id, b]))
+    setLancamentos((ls) => [
+      ...ls.map((l) => {
+        const b = porId.get(l.id)
+        return b ? { ...l, pago: true, dataPagamento: b.data, importId: b.importId } : l
+      }),
+      ...novos.map((l) => ajustarParaConta(l, contaPorId.get(l.contaId))),
+    ])
+    setImportando(null)
+    alert(`Importação concluída: ${novos.length} lançamento(s) criado(s) e ${baixas.length} conciliado(s).`)
+  }
+
+  const abrirFatura = (f: Fatura) => {
+    setCartaoAberto({ cartao: f.cartao.id, fatura: f.chave })
+    setAba('cartoes')
+  }
+
+  const pagarFatura = (t: Transferencia) => {
+    setTransferencias((ts) => [...ts, t])
+    setPagandoFatura(null)
   }
 
   const darBaixa = (id: string) =>
@@ -193,11 +256,14 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
 
   const arquivarConta = (c: ContaFinanceira) => {
     if (c.arquivada) return setContas((cs) => cs.map((x) => (x.id === c.id ? { ...x, arquivada: false } : x)))
-    if (contas.filter((x) => !x.arquivada).length <= 1) return alert('Você precisa manter pelo menos uma conta ativa.')
-    const saldo = saldoConta(c, lancamentos, transferencias)
+    if (!ehCartao(c) && contas.filter((x) => !x.arquivada && !ehCartao(x)).length <= 1) return alert('Você precisa manter pelo menos uma conta ativa.')
+    const moeda = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    const saldo = ehCartao(c) ? 0 : saldoConta(c, lancamentos, transferencias)
+    const emAberto = ehCartao(c) ? resumoCartao(c, lancamentos, transferencias).usado : 0
     const pendentes = lancamentos.filter((l) => l.contaId === c.id && !l.pago).length
     const avisos = [
-      saldo !== 0 ? `ainda tem saldo de ${saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : '',
+      saldo !== 0 ? `ainda tem saldo de ${moeda(saldo)}` : '',
+      emAberto > 0 ? `ainda tem ${moeda(emAberto)} em faturas a pagar` : '',
       pendentes ? `tem ${pendentes} lançamento(s) pendente(s)` : '',
     ].filter(Boolean)
     const msg = `Arquivar "${c.nome}"? O histórico será preservado, mas ela não aparecerá para novos lançamentos.${avisos.length ? `\n\nAtenção: a conta ${avisos.join(' e ')}.` : ''}`
@@ -209,7 +275,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
 
   const excluirConta = (c: ContaFinanceira) => {
     if (temHistorico(c.id, lancamentos, transferencias)) return alert('Esta conta tem movimentações. Arquive-a para preservar o histórico.')
-    if (contas.length <= 1) return alert('Você precisa ter pelo menos uma conta.')
+    if (!ehCartao(c) && contas.filter((x) => !ehCartao(x)).length <= 1) return alert('Você precisa ter pelo menos uma conta.')
     if (confirm(`Excluir a conta "${c.nome}"?`)) {
       setContas((cs) => cs.filter((x) => x.id !== c.id))
       if (contaFiltro === c.id) setContaFiltro('')
@@ -266,6 +332,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
         contas: restantes.length ? restantes : [contaPrincipal()],
         lancamentos: d.lancamentos.filter((l) => !ids.has(l.contaId)),
         transferencias: d.transferencias.filter((t) => !ids.has(t.origemId) && !ids.has(t.destinoId)),
+        series: d.series.filter((sr) => d.lancamentos.some((l) => l.serieId === sr.id && !ids.has(l.contaId))),
         orcamentos: JSON.stringify(d.orcamentos) === orcExemplo ? {} : d.orcamentos,
       }
     })
@@ -274,7 +341,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
 
   const importar = (b: Partial<Backup>) => setDados((d) => normalizarDados({ ...b, nome: d.nome }, d.nome))
   const apagarTudo = () => {
-    setDados((d) => ({ ...d, categorias: CATEGORIAS_PADRAO, lancamentos: [], orcamentos: {}, contas: [contaPrincipal()], transferencias: [] }))
+    setDados((d) => ({ ...d, categorias: CATEGORIAS_PADRAO, lancamentos: [], orcamentos: {}, contas: [contaPrincipal()], transferencias: [], series: [] }))
     setContaFiltro('')
   }
 
@@ -287,7 +354,8 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
   const propsLista = {
     lancamentos, categorias, contas, catPorId, contaPorId, periodo, setPeriodo, contaFiltro, setContaFiltro,
     onEditar: (l: Lancamento) => setEditando({ inicial: l, tipo: l.tipo }),
-    onExcluir: excluirLancamento, onBaixa: darBaixa, onReverter: reverterBaixa, onNovo: novo,
+    onExcluir: excluirLancamento, onBaixa: darBaixa, onReverter: reverterBaixa, onNovo: (t: Tipo) => novo(t),
+    faturas, onPagarFatura: setPagandoFatura, onAbrirFatura: abrirFatura,
   }
 
   const itemMenu = (a: (typeof ABAS)[number]) => {
@@ -316,9 +384,9 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
 
           <nav className="menu" aria-label="Menu principal">
             <span className="menu-titulo">Financeiro</span>
-            {ABAS.slice(0, 5).map(itemMenu)}
+            {ABAS.slice(0, 6).map(itemMenu)}
             <span className="menu-titulo espaco">Organização</span>
-            {ABAS.slice(5).map(itemMenu)}
+            {ABAS.slice(6).map(itemMenu)}
           </nav>
 
           <div className="lateral-rodape">
@@ -385,14 +453,23 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <Dashboard lancamentos={lancamentos} transferencias={transferencias} contas={contas} catPorId={catPorId} contaPorId={contaPorId}
                 orcamentos={orcamentos} periodo={periodo} setPeriodo={setPeriodo} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro}
                 onBaixa={darBaixa} onReverter={reverterBaixa} onEditar={propsLista.onEditar} onNovo={novo} onTransferir={() => transferir()}
-                onIr={setAba} onCarregarExemplo={carregarExemplo} />
+                onIr={setAba} onCarregarExemplo={carregarExemplo}
+                faturas={faturas} onPagarFatura={setPagandoFatura} onAbrirFatura={abrirFatura} />
             )}
-            {aba === 'lancamentos' && <Lancamentos {...propsLista} />}
+            {aba === 'lancamentos' && <Lancamentos {...propsLista} onImportar={() => setImportando({ conta: contaFiltro })} />}
             {aba === 'pagar' && <ContasPagarReceber tipo="despesa" {...propsLista} />}
             {aba === 'receber' && <ContasPagarReceber tipo="receita" {...propsLista} />}
+            {aba === 'cartoes' && (
+              <CartoesCredito contas={contas} lancamentos={lancamentos} transferencias={transferencias} catPorId={catPorId} contaPorId={contaPorId}
+                cartaoInicial={cartaoAberto.cartao} faturaInicial={cartaoAberto.fatura}
+                onNovoCartao={() => { setTipoNovaConta('cartao'); setEditandoConta('nova') }} onEditarCartao={setEditandoConta}
+                onArquivar={arquivarConta} onExcluir={excluirConta} onNovaCompra={(id) => novo('despesa', id)} onPagar={setPagandoFatura}
+                onImportar={(id) => setImportando({ conta: id })} onEditar={propsLista.onEditar} onExcluirLancamento={excluirLancamento}
+                onExcluirPagamento={excluirTransferencia} />
+            )}
             {aba === 'contas' && (
               <ContasFinanceiras contas={contas} lancamentos={lancamentos} transferencias={transferencias}
-                onNovaConta={() => setEditandoConta('nova')} onEditarConta={setEditandoConta} onArquivar={arquivarConta}
+                onNovaConta={() => { setTipoNovaConta(undefined); setEditandoConta('nova') }} onEditarConta={setEditandoConta} onArquivar={arquivarConta}
                 onExcluirConta={excluirConta} onTransferir={transferir} onExcluirTransferencia={excluirTransferencia} />
             )}
             {aba === 'orcamentos' && (
@@ -470,7 +547,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
           <FormLancamento
             inicial={editando.inicial}
             tipoInicial={editando.tipo}
-            contaInicial={contaFiltro}
+            contaInicial={editando.conta ?? contaFiltro}
             categorias={categorias}
             contas={contas}
             contatos={contatos}
@@ -479,7 +556,20 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
           />
         )}
         {editandoConta && (
-          <FormConta inicial={editandoConta === 'nova' ? null : editandoConta} onSalvar={salvarConta} onFechar={() => setEditandoConta(null)} />
+          <FormConta inicial={editandoConta === 'nova' ? null : editandoConta} tipoInicial={tipoNovaConta} contas={contas}
+            onSalvar={salvarConta} onFechar={() => setEditandoConta(null)} />
+        )}
+        {acaoSerie && (
+          <EscolhaEscopo acao={acaoSerie.acao} parcelado={!!(acaoSerie.acao === 'editar' ? acaoSerie.original : acaoSerie.alvo).parcela}
+            onEscolher={aplicarEscopo} onFechar={() => setAcaoSerie(null)} />
+        )}
+        {pagandoFatura && (
+          <FormPagarFatura fatura={pagandoFatura} contas={contas} lancamentos={lancamentos} transferencias={transferencias}
+            onSalvar={pagarFatura} onFechar={() => setPagandoFatura(null)} />
+        )}
+        {importando && (
+          <ImportarExtrato contas={contas} contaInicial={importando.conta} categorias={categorias} lancamentos={lancamentos}
+            onConcluir={concluirImportacao} onFechar={() => setImportando(null)} />
         )}
         {transferindo && (
           <FormTransferencia contas={contas} lancamentos={lancamentos} transferencias={transferencias} origemInicial={transferindo.origem ?? contaFiltro}

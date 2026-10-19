@@ -1,0 +1,96 @@
+/* ================= Parcelas, recorrência, cartões e importação ================= */
+
+/* Selos e avisos */
+.selo {
+  display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 1px 6px; border-radius: 6px; vertical-align: 1px;
+  font-style: normal; font-size: 11px; font-weight: 700; color: var(--primaria); background: var(--primaria-suave);
+}
+.pilula-status.cartao { color: #ea580c; background: color-mix(in srgb, #f97316 14%, transparent); }
+:root[data-theme='escuro'] .pilula-status.cartao { color: #fdba74; }
+.info-fatura, .aviso-serie {
+  display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 12px; font-size: 13.5px;
+  background: color-mix(in srgb, #f97316 10%, var(--superficie-2)); color: var(--texto);
+}
+.info-fatura svg { color: #f97316; flex: none; }
+.aviso-serie { background: var(--primaria-suave); }
+.aviso-serie .selo { margin: 0; }
+
+/* Repetição no formulário */
+.bloco-repeticao { gap: 10px; }
+.opcoes-rep { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 14px; background: var(--superficie-2); border: 1px solid var(--borda); }
+.previa-rep { margin: 0; font-size: 13px; font-weight: 600; color: var(--primaria); }
+
+/* Escolha de escopo */
+.opcoes-escopo { display: flex; flex-direction: column; gap: 10px; }
+.opcoes-escopo button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 14px 16px; border-radius: 14px; text-align: left;
+  border: 1.5px solid var(--borda); background: var(--superficie-2); transition: border-color .15s, background .15s;
+}
+.opcoes-escopo button:hover { border-color: var(--primaria); background: var(--primaria-suave); }
+.opcoes-escopo button.perigo:hover { border-color: var(--vermelho); background: color-mix(in srgb, var(--vermelho) 8%, transparent); }
+.opcoes-escopo strong { font-size: 14.5px; }
+.opcoes-escopo span { font-size: 12.5px; color: var(--texto-3); }
+.opcoes-tema.quatro { grid-template-columns: repeat(4, 1fr); }
+
+/* Cartões */
+.faixa-cartoes { display: flex; gap: 16px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x mandatory; }
+.cartao-visual {
+  flex: 0 0 300px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; padding: 20px; min-height: 180px;
+  border-radius: 22px; border: 2px solid transparent; color: #fff; text-align: left;
+  background: linear-gradient(135deg, #1e1b4b, #4c1d95 50%, #c2410c 140%);
+  box-shadow: 0 16px 36px -14px rgb(30 27 75 / .6); transition: transform .2s, border-color .2s;
+}
+.cartao-visual:hover { transform: translateY(-2px); }
+.cartao-visual.ativo { border-color: #fdba74; }
+.cartao-visual.novo {
+  align-items: center; justify-content: center; flex-direction: row; gap: 8px; font-weight: 700; color: var(--texto-2);
+  background: var(--superficie); border: 2px dashed var(--borda); box-shadow: none; flex-basis: 200px;
+}
+.cv-topo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+.cv-rot { margin-top: auto; font-size: 12px; opacity: .75; }
+.cartao-visual strong { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+.cv-barra { height: 6px; border-radius: 99px; background: rgb(255 255 255 / .2); overflow: hidden; }
+.cv-barra i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #fdba74, #fb7185); }
+.cv-rodape { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; opacity: .85; flex-wrap: wrap; }
+.nav-fatura { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nav-fatura h3 { margin: 0 6px; }
+.resumo-fatura { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.resumo-fatura > div { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--superficie-2); border: 1px solid var(--borda); }
+.resumo-fatura > div { min-width: 0; }
+.resumo-fatura span { font-size: 12px; color: var(--texto-3); font-weight: 600; }
+.resumo-fatura strong { font-size: 15px; white-space: normal; overflow-wrap: anywhere; }
+.subtitulo-lista { margin: 18px 0 8px; font-size: 13px; color: var(--texto-3); text-transform: uppercase; letter-spacing: .05em; }
+.rodape-cartao { margin-top: 16px; padding-top: 12px; }
+.rodape-cartao .kpi-nota { margin-right: auto; }
+.lista-mov li.situacao-cartao .mov-valor { opacity: 1; }
+
+/* Importação */
+.modal.modal-largo { max-width: 760px; }
+.area-arquivo {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px; border-radius: 18px;
+  border: 2px dashed var(--borda); background: var(--superficie-2); color: var(--texto-2); transition: border-color .2s, background .2s;
+}
+.area-arquivo:hover { border-color: var(--primaria); background: var(--primaria-suave); }
+.area-arquivo svg { color: var(--primaria); }
+.area-arquivo strong { color: var(--texto); font-size: 15px; }
+.area-arquivo span { font-size: 13px; }
+.mapa-colunas { display: flex; flex-direction: column; gap: 12px; }
+.resumo-import { display: flex; gap: 8px; flex-wrap: wrap; }
+.lista-import { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; }
+.lista-import li { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--borda); background: var(--superficie-2); }
+.lista-import li.acao-ignorar { opacity: .55; }
+.lista-import li.acao-conciliar { border-color: color-mix(in srgb, #f97316 40%, var(--borda)); }
+.li-topo { display: flex; align-items: center; gap: 10px; }
+.li-desc { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li-baixo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.li-baixo select { height: 36px !important; padding: 4px 10px !important; font-size: 13px; }
+.li-nota { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--texto-2); }
+.li-nota.aviso { color: var(--amarelo); }
+
+@media (max-width: 640px) {
+  .opcoes-tema.quatro { grid-template-columns: repeat(2, 1fr); }
+  .cartao-visual { flex-basis: 82%; }
+  .li-topo { flex-wrap: wrap; }
+  .li-desc { flex-basis: 100%; order: 3; white-space: normal; }
+  .li-baixo select { flex: 1 1 140px; }
+}

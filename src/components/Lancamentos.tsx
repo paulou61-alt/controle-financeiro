@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, Download, Plus, Scale, Search } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Download, Plus, Scale, Search, Upload } from 'lucide-react'
 import type { Categoria, ContaFinanceira, Lancamento, Tipo } from '../types'
 import { noPeriodo, situacao, type Periodo, type Situacao } from '../financas'
 import { baixarArquivo, formatData } from '../utils'
@@ -21,6 +21,7 @@ interface Props {
   onBaixa: (id: string) => void
   onReverter: (id: string) => void
   onNovo: (tipo: Tipo) => void
+  onImportar: () => void
 }
 
 const DIAS_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
@@ -62,12 +63,13 @@ export default function Lancamentos(p: Props) {
     const esc = (s = '') => `"${s.replace(/"/g, '""')}"`
     const rotSit = { realizado: 'Realizado', pendente: 'Pendente', atrasado: 'Atrasado' }
     const linhas = [
-      ['Vencimento', 'Tipo', 'Descrição', 'Categoria', 'Conta', 'Cliente/Fornecedor', 'Valor', 'Situação', 'Data pagamento/recebimento', 'Observações'].join(';'),
+      ['Vencimento', 'Tipo', 'Descrição', 'Parcela', 'Categoria', 'Conta', 'Cliente/Fornecedor', 'Valor', 'Situação', 'Data pagamento/recebimento', 'Observações'].join(';'),
       ...lista.map((l) =>
         [
           formatData(l.data),
           l.tipo === 'receita' ? 'Receita' : 'Despesa',
           esc(l.descricao),
+          l.parcela ? `${l.parcela.numero}/${l.parcela.total}` : l.serieId ? 'Recorrente' : '',
           esc(catPorId.get(l.categoriaId)?.nome),
           esc(contaPorId.get(l.contaId)?.nome),
           esc(l.contato),
@@ -125,6 +127,7 @@ export default function Lancamentos(p: Props) {
             <option value="atrasado">Atrasados</option>
             <option value="realizado">Pagos / recebidos</option>
           </select>
+          <button className="btn" onClick={p.onImportar}><Upload size={16} /> Importar extrato</button>
           <button className="btn" onClick={exportarCSV} disabled={lista.length === 0}><Download size={16} /> Exportar</button>
         </div>
 

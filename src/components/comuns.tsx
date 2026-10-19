@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import {
-  AlertTriangle, Banknote, CalendarRange, CheckCircle2, Clock, Landmark, Pencil, Smartphone, Trash2, Undo2, Wallet, X,
-  type LucideIcon,
+  AlertTriangle, Banknote, CalendarRange, CheckCircle2, Clock, CreditCard, Landmark, Pencil, Repeat, Smartphone, Trash2,
+  Undo2, Wallet, X, type LucideIcon,
 } from 'lucide-react'
 import type { Categoria, ContaFinanceira, Lancamento, TipoConta } from '../types'
-import { PRESETS, periodoDoPreset, situacao, type Periodo, type PresetPeriodo } from '../financas'
-import { formatData, hojeISO } from '../utils'
+import { PRESETS, faturaDaCompra, periodoDoPreset, situacao, type Fatura, type Periodo, type PresetPeriodo } from '../financas'
+import type { Escopo } from '../series'
+import { formatData, hojeISO, rotuloMes } from '../utils'
 import { IconeCategoria, useFmt } from '../ui'
 
 /* ---------- Contas financeiras ---------- */
@@ -14,6 +15,7 @@ export const TIPOS_CONTA: { id: TipoConta; rotulo: string; icone: LucideIcon; co
   { id: 'banco', rotulo: 'Conta bancária', icone: Landmark, cor: '#6d4dff' },
   { id: 'caixa', rotulo: 'Caixa', icone: Banknote, cor: '#12b76a' },
   { id: 'carteira', rotulo: 'Carteira digital', icone: Smartphone, cor: '#0ea5e9' },
+  { id: 'cartao', rotulo: 'Cartão de crédito', icone: CreditCard, cor: '#f97316' },
 ]
 
 export function IconeConta({ tipo, tamanho = 38 }: { tipo?: TipoConta; tamanho?: number }) {
@@ -88,20 +90,34 @@ interface LinhaProps {
   onExcluir?: (id: string) => void
 }
 
+export function SeloSerie({ l }: { l: Lancamento }) {
+  if (l.parcela) return <em className="selo" title="Parcela">{l.parcela.numero}/{l.parcela.total}</em>
+  if (l.serieId) return <em className="selo" title="Recorrente"><Repeat size={11} /></em>
+  return null
+}
+
 export function LinhaLancamento({ l, cat, conta, mostrarData, onBaixa, onReverter, onEditar, onExcluir }: LinhaProps) {
   const fmt = useFmt()
+  const cartao = conta?.tipo === 'cartao'
   const detalhes = [cat?.nome ?? 'Sem categoria', conta?.nome, l.contato].filter(Boolean).join(' · ')
+  const prefixo = mostrarData ? (cartao ? `Compra ${formatData(l.data)} · ` : `Vence ${formatData(l.data)} · `) : ''
   return (
-    <li className={`situacao-${situacao(l)}`}>
+    <li className={cartao ? 'situacao-cartao' : `situacao-${situacao(l)}`}>
       <IconeCategoria cat={cat} tamanho={40} />
       <button className="mov-info" onClick={() => onEditar(l)}>
-        <strong>{l.descricao}</strong>
-        <span>{mostrarData ? `Vence ${formatData(l.data)} · ` : ''}{detalhes}</span>
+        <strong>{l.descricao} <SeloSerie l={l} /></strong>
+        <span>{prefixo}{detalhes}</span>
       </button>
-      <PilulaSituacao l={l} />
+      {cartao ? (
+        <span className="pilula-status cartao" title="Compra no cartão de crédito">
+          <CreditCard size={14} /> Fatura {rotuloMes(faturaDaCompra(conta, l.data).chave)}
+        </span>
+      ) : (
+        <PilulaSituacao l={l} />
+      )}
       <span className={`num mov-valor ${l.tipo}`}>{l.tipo === 'despesa' ? '−' : '+'}{fmt(l.valor)}</span>
       <span className="mov-acoes">
-        {l.pago ? (
+        {cartao ? null : l.pago ? (
           <button className="btn-icone pequeno" onClick={() => onReverter(l.id)} aria-label="Reverter baixa" title="Reverter baixa"><Undo2 size={15} /></button>
         ) : (
           <button className="btn baixa" onClick={() => onBaixa(l.id)} title={l.tipo === 'despesa' ? 'Marcar como pago' : 'Marcar como recebido'}>
@@ -112,6 +128,66 @@ export function LinhaLancamento({ l, cat, conta, mostrarData, onBaixa, onReverte
         {onExcluir && <button className="btn-icone pequeno perigo" onClick={() => onExcluir(l.id)} aria-label="Excluir" title="Excluir"><Trash2 size={15} /></button>}
       </span>
     </li>
+  )
+}
+
+/* ---------- Fatura de cartão ---------- */
+
+const ROTULO_FATURA: Record<Fatura['status'], string> = {
+  aberta: 'Aberta', fechada: 'Fechada', vencida: 'Vencida', paga: 'Paga', futura: 'Futura',
+}
+
+export function PilulaFatura({ f }: { f: Fatura }) {
+  const classe = f.status === 'paga' ? 'pago' : f.status === 'vencida' ? 'atrasado' : f.status === 'fechada' ? 'aberto' : 'cartao'
+  return <span className={`pilula-status ${classe}`}><CreditCard size={14} /> {ROTULO_FATURA[f.status]}</span>
+}
+
+export function LinhaFatura({ f, onPagar, onAbrir }: { f: Fatura; onPagar: (f: Fatura) => void; onAbrir: (f: Fatura) => void }) {
+  const fmt = useFmt()
+  return (
+    <li className={f.status === 'vencida' ? 'situacao-atrasado' : ''}>
+      <IconeConta tipo="cartao" tamanho={40} />
+      <button className="mov-info" onClick={() => onAbrir(f)}>
+        <strong>Fatura {f.cartao.nome} · {rotuloMes(f.chave)}</strong>
+        <span>Vence {formatData(f.vencimento)} · {f.compras.length} compra(s){f.pago > 0 ? ` · pago ${fmt(f.pago)}` : ''}</span>
+      </button>
+      <PilulaFatura f={f} />
+      <span className="num mov-valor despesa">−{fmt(f.restante > 0 ? f.restante : f.total)}</span>
+      <span className="mov-acoes">
+        {f.restante > 0 && f.status !== 'futura' && (
+          <button className="btn baixa" onClick={() => onPagar(f)}><CheckCircle2 size={15} /> Pagar fatura</button>
+        )}
+      </span>
+    </li>
+  )
+}
+
+/* ---------- Escopo de edição em série ---------- */
+
+export function EscolhaEscopo({ acao, parcelado, onEscolher, onFechar }: {
+  acao: 'editar' | 'excluir'
+  parcelado: boolean
+  onEscolher: (e: Escopo) => void
+  onFechar: () => void
+}) {
+  const item = parcelado ? 'parcela' : 'ocorrência'
+  const opcoes: { id: Escopo; titulo: string; texto: string }[] = [
+    { id: 'este', titulo: `Somente esta ${item}`, texto: 'As demais ficam como estão.' },
+    { id: 'proximos', titulo: `Esta e as próximas`, texto: parcelado ? 'Aplica às parcelas seguintes.' : 'Aplica daqui para frente.' },
+    { id: 'todos', titulo: parcelado ? 'Todas as parcelas' : 'Todas as ocorrências', texto: 'Inclui as anteriores.' },
+  ]
+  return (
+    <Modal titulo={acao === 'editar' ? 'Aplicar alteração em…' : 'Excluir…'} onFechar={onFechar} onSubmit={(e) => e.preventDefault()}>
+      <p className="ajuda">Este lançamento faz parte de {parcelado ? 'um parcelamento' : 'uma recorrência'}.</p>
+      <div className="opcoes-escopo">
+        {opcoes.map((o) => (
+          <button type="button" key={o.id} className={acao === 'excluir' && o.id !== 'este' ? 'perigo' : ''} onClick={() => onEscolher(o.id)}>
+            <strong>{o.titulo}</strong>
+            <span>{o.texto}</span>
+          </button>
+        ))}
+      </div>
+    </Modal>
   )
 }
 

@@ -7,10 +7,10 @@ import {
   Plus, Receipt, Scale, Sparkles, TrendingDown, TrendingUp, Wallet,
 } from 'lucide-react'
 import type { Categoria, ContaFinanceira, Lancamento, Orcamentos, Tipo, Transferencia } from '../types'
-import { diasEntre, noPeriodo, previsaoSaldo, rotuloPeriodo, saldoConta, type Periodo } from '../financas'
+import { diasEntre, ehCartao, noPeriodo, previsaoSaldo, rotuloPeriodo, saldoConta, type Fatura, type Periodo } from '../financas'
 import { formatData, hojeISO, mesAtual, mesDe, rotuloMes } from '../utils'
 import { DicaGrafico, IconeCategoria, Valor, useFmt, useOculto } from '../ui'
-import { FiltroConta, FiltroPeriodo, IconeConta, LinhaLancamento } from './comuns'
+import { FiltroConta, FiltroPeriodo, IconeConta, LinhaFatura, LinhaLancamento } from './comuns'
 
 interface Props {
   lancamentos: Lancamento[]
@@ -28,8 +28,11 @@ interface Props {
   onEditar: (l: Lancamento) => void
   onNovo: (tipo: Tipo) => void
   onTransferir: () => void
-  onIr: (aba: 'lancamentos' | 'pagar' | 'receber' | 'contas') => void
+  onIr: (aba: 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes') => void
   onCarregarExemplo: () => void
+  faturas: Fatura[]
+  onPagarFatura: (f: Fatura) => void
+  onAbrirFatura: (f: Fatura) => void
 }
 
 export default function Dashboard(p: Props) {
@@ -38,22 +41,41 @@ export default function Dashboard(p: Props) {
   const oculto = useOculto()
   const hoje = hojeISO()
 
-  const contasSel = useMemo(() => (contaFiltro ? contas.filter((c) => c.id === contaFiltro) : contas), [contas, contaFiltro])
+  // saldo e previsão consideram só dinheiro (cartões entram pelas faturas)
+  const contasCaixa = useMemo(() => contas.filter((c) => !ehCartao(c)), [contas])
+  const contasSel = useMemo(() => (contaFiltro ? contasCaixa.filter((c) => c.id === contaFiltro) : contasCaixa), [contasCaixa, contaFiltro])
   const doFiltro = useMemo(() => (contaFiltro ? lancamentos.filter((l) => l.contaId === contaFiltro) : lancamentos), [lancamentos, contaFiltro])
-  const prev = useMemo(() => previsaoSaldo(contasSel, lancamentos, transferencias, 30), [contasSel, lancamentos, transferencias])
+  const faturasAbertas = useMemo(
+    () => p.faturas.filter((f) => f.restante > 0 && f.status !== 'futura' && (!contaFiltro || f.cartao.contaPagamentoId === contaFiltro)),
+    [p.faturas, contaFiltro],
+  )
+  const prev = useMemo(() => previsaoSaldo(contasSel, lancamentos, transferencias, 30, p.faturas), [contasSel, lancamentos, transferencias, p.faturas])
 
   const realizados = doFiltro.filter((l) => l.pago && noPeriodo(l.dataPagamento, periodo))
   const recebidas = realizados.filter((l) => l.tipo === 'receita').reduce((s, l) => s + l.valor, 0)
   const pagas = realizados.filter((l) => l.tipo === 'despesa').reduce((s, l) => s + l.valor, 0)
   const resultado = recebidas - pagas
 
+  // "a pagar / a receber" vão até o fim do período (recorrências geram meses à frente)
+  const ate = periodo.ate
   const pendentes = doFiltro.filter((l) => !l.pago)
-  const aReceber = pendentes.filter((l) => l.tipo === 'receita').reduce((s, l) => s + l.valor, 0)
-  const aPagar = pendentes.filter((l) => l.tipo === 'despesa').reduce((s, l) => s + l.valor, 0)
+  const pendentesAte = pendentes.filter((l) => l.data <= ate)
+  const faturasAte = faturasAbertas.filter((f) => f.vencimento <= ate)
+  const aReceberLista = pendentesAte.filter((l) => l.tipo === 'receita')
+  const aPagarLista = pendentesAte.filter((l) => l.tipo === 'despesa')
+  const aReceber = aReceberLista.reduce((s, l) => s + l.valor, 0)
+  const aPagar = aPagarLista.reduce((s, l) => s + l.valor, 0) + faturasAte.reduce((s, f) => s + f.restante, 0)
   const vencidas = pendentes.filter((l) => l.data < hoje)
+  const faturasVencidas = faturasAbertas.filter((f) => f.status === 'vencida')
   const vencidasPagar = vencidas.filter((l) => l.tipo === 'despesa')
   const vencidasReceber = vencidas.filter((l) => l.tipo === 'receita')
-  const proximos = [...pendentes].sort((a, b) => a.data.localeCompare(b.data)).slice(0, 7)
+  const totalVencidoPagar = vencidasPagar.reduce((s, l) => s + l.valor, 0) + faturasVencidas.reduce((s, f) => s + f.restante, 0)
+  const qtdVencidas = vencidas.length + faturasVencidas.length
+  const proximos = [
+    ...pendentes.map((l) => ({ data: l.data, l, f: undefined as Fatura | undefined })),
+    ...faturasAbertas.map((f) => ({ data: f.vencimento, l: undefined as Lancamento | undefined, f })),
+  ].sort((a, b) => a.data.localeCompare(b.data)).slice(0, 7)
+  const ateTexto = periodo.preset === 'tudo' ? 'Em aberto' : `Até ${formatData(ate)}`
 
   const serie = useMemo(() => {
     const datas = realizados.map((l) => l.dataPagamento!).sort()
@@ -105,7 +127,10 @@ export default function Dashboard(p: Props) {
 
   const insights: { tom: 'bom' | 'ruim' | 'info'; texto: string }[] = []
   if (prev.menor.Saldo < 0) insights.push({ tom: 'ruim', texto: `Atenção: a previsão indica saldo negativo em ${formatData(prev.menor.data)} (${fmt(prev.menor.Saldo)}).` })
-  if (vencidasPagar.length) insights.push({ tom: 'ruim', texto: `${vencidasPagar.length} conta(s) a pagar vencida(s), somando ${fmt(vencidasPagar.reduce((s, l) => s + l.valor, 0))}.` })
+  if (vencidasPagar.length + faturasVencidas.length)
+    insights.push({ tom: 'ruim', texto: `${vencidasPagar.length + faturasVencidas.length} conta(s) a pagar vencida(s), somando ${fmt(totalVencidoPagar)}.` })
+  const faturaFechada = faturasAbertas.find((f) => f.status === 'fechada')
+  if (faturaFechada) insights.push({ tom: 'info', texto: `Fatura ${faturaFechada.cartao.nome} fechada: ${fmt(faturaFechada.restante)}, vence em ${formatData(faturaFechada.vencimento)}.` })
   if (vencidasReceber.length) insights.push({ tom: 'ruim', texto: `${vencidasReceber.length} recebimento(s) em atraso, somando ${fmt(vencidasReceber.reduce((s, l) => s + l.valor, 0))}.` })
   if (recebidas > 0 || pagas > 0)
     insights.push(resultado >= 0
@@ -136,7 +161,8 @@ export default function Dashboard(p: Props) {
     ? { tick: false as const, width: 8 }
     : { tick: corEixo, width: 64, tickFormatter: (v: number) => v.toLocaleString('pt-BR', { notation: 'compact', style: 'currency', currency: 'BRL' }) }
   const nomeFiltro = contaFiltro ? contaPorId.get(contaFiltro)?.nome ?? 'Conta' : 'Todas as contas'
-  const ativas = contas.filter((c) => !c.arquivada)
+  const ativas = contasCaixa.filter((c) => !c.arquivada)
+  const cartoesAtivos = contas.filter((c) => ehCartao(c) && !c.arquivada)
 
   return (
     <div className="dash">
@@ -144,7 +170,7 @@ export default function Dashboard(p: Props) {
       <section className="barra-dash c12">
         <div className="filtros-dash">
           <FiltroPeriodo periodo={periodo} onChange={p.setPeriodo} />
-          <FiltroConta contas={contas} valor={contaFiltro} onChange={p.setContaFiltro} />
+          <FiltroConta contas={contasCaixa} valor={contaFiltro} onChange={p.setContaFiltro} />
         </div>
         <div className="acoes-dash">
           <button className="btn acao-receita" onClick={() => p.onNovo('receita')}><ArrowUpRight size={17} /> Nova receita</button>
@@ -201,6 +227,25 @@ export default function Dashboard(p: Props) {
             </li>
           ))}
         </ul>
+        {cartoesAtivos.length > 0 && (
+          <>
+            <h4 className="subtitulo-lista">Cartões · fatura atual</h4>
+            <ul className="lista-contas-dash">
+              {cartoesAtivos.map((c) => {
+                const atual = p.faturas.find((f) => f.cartao.id === c.id && f.status === 'aberta')
+                return (
+                  <li key={c.id}>
+                    <button onClick={() => p.onIr('cartoes')}>
+                      <IconeConta tipo="cartao" tamanho={34} />
+                      <span>{c.nome}</span>
+                      <strong className="num despesa">{fmt(atual?.total ?? 0)}</strong>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
       </section>
 
       {/* Indicadores */}
@@ -225,18 +270,18 @@ export default function Dashboard(p: Props) {
         <button className="cartao kpi clicavel" onClick={() => p.onIr('receber')}>
           <div className="kpi-topo"><span className="kpi-icone ciano"><HandCoins size={18} /></span><span className="kpi-rotulo">A receber</span></div>
           <Valor v={aReceber} className="kpi-valor" />
-          <span className="kpi-nota">{pendentes.filter((l) => l.tipo === 'receita').length} lançamento(s) em aberto</span>
+          <span className="kpi-nota">{ateTexto} · {aReceberLista.length} lançamento(s)</span>
         </button>
         <button className="cartao kpi clicavel" onClick={() => p.onIr('pagar')}>
           <div className="kpi-topo"><span className="kpi-icone amarelo"><Receipt size={18} /></span><span className="kpi-rotulo">A pagar</span></div>
           <Valor v={aPagar} className="kpi-valor" />
-          <span className="kpi-nota">{pendentes.filter((l) => l.tipo === 'despesa').length} lançamento(s) em aberto</span>
+          <span className="kpi-nota">{ateTexto} · {aPagarLista.length} lançamento(s){faturasAte.length ? ` + ${faturasAte.length} fatura(s)` : ''}</span>
         </button>
-        <button className={`cartao kpi clicavel ${vencidas.length ? 'alerta-kpi' : ''}`} onClick={() => p.onIr('pagar')}>
+        <button className={`cartao kpi clicavel ${qtdVencidas ? 'alerta-kpi' : ''}`} onClick={() => p.onIr('pagar')}>
           <div className="kpi-topo"><span className="kpi-icone vermelho"><AlertTriangle size={18} /></span><span className="kpi-rotulo">Contas vencidas</span></div>
-          <span className="kpi-valor num">{vencidas.length}</span>
+          <span className="kpi-valor num">{qtdVencidas}</span>
           <span className="kpi-nota">
-            {vencidas.length ? `A pagar ${fmt(vencidasPagar.reduce((s, l) => s + l.valor, 0))} · A receber ${fmt(vencidasReceber.reduce((s, l) => s + l.valor, 0))}` : 'Nenhuma conta em atraso'}
+            {qtdVencidas ? `A pagar ${fmt(totalVencidoPagar)} · A receber ${fmt(vencidasReceber.reduce((s, l) => s + l.valor, 0))}` : 'Nenhuma conta em atraso'}
           </span>
         </button>
       </section>
@@ -316,10 +361,14 @@ export default function Dashboard(p: Props) {
           <p className="vazio sucesso"><CheckCircle2 size={18} /> Nada pendente. Tudo pago e recebido.</p>
         ) : (
           <ul className="lista-mov">
-            {proximos.map((l) => (
-              <LinhaLancamento key={l.id} l={l} cat={catPorId.get(l.categoriaId)} conta={contaPorId.get(l.contaId)} mostrarData
-                onBaixa={p.onBaixa} onReverter={p.onReverter} onEditar={p.onEditar} />
-            ))}
+            {proximos.map(({ l, f }) =>
+              f ? (
+                <LinhaFatura key={`f-${f.cartao.id}-${f.chave}`} f={f} onPagar={p.onPagarFatura} onAbrir={p.onAbrirFatura} />
+              ) : (
+                <LinhaLancamento key={l!.id} l={l!} cat={catPorId.get(l!.categoriaId)} conta={contaPorId.get(l!.contaId)} mostrarData
+                  onBaixa={p.onBaixa} onReverter={p.onReverter} onEditar={p.onEditar} />
+              ),
+            )}
           </ul>
         )}
       </section>

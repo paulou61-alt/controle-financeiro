@@ -1,5 +1,7 @@
-import type { ContaFinanceira, Lancamento, Orcamentos, Transferencia } from './types'
+import type { ContaFinanceira, Lancamento, Orcamentos, Serie, Transferencia } from './types'
 import { diasNoMes, hojeISO, mesAtual, mesDe, somarMes, uid } from './utils'
+import { faturasDoCartao } from './financas'
+import { dataDaOcorrencia } from './series'
 
 /** Dados fictícios dos últimos 6 meses (e alguns futuros) para demonstrar o sistema */
 export function gerarExemplo(): {
@@ -7,6 +9,7 @@ export function gerarExemplo(): {
   orcamentos: Orcamentos
   contas: ContaFinanceira[]
   transferencias: Transferencia[]
+  series: Serie[]
 } {
   let semente = 20261019
   const rnd = () => (semente = (semente * 16807) % 2147483647) / 2147483647
@@ -18,8 +21,11 @@ export function gerarExemplo(): {
     { id: 'banco-exemplo', nome: 'Banco Digital', tipo: 'banco', saldoInicial: 4200, dataSaldoInicial: inicio },
     { id: 'caixa-exemplo', nome: 'Caixa da loja', tipo: 'caixa', saldoInicial: 350, dataSaldoInicial: inicio },
     { id: 'carteira-exemplo', nome: 'Carteira digital', tipo: 'carteira', saldoInicial: 0, dataSaldoInicial: inicio },
+    { id: 'cartao-exemplo', nome: 'Cartão Roxo', tipo: 'cartao', saldoInicial: 0, dataSaldoInicial: inicio, limite: 8000, diaFechamento: 3, diaVencimento: 10, contaPagamentoId: 'banco-exemplo' },
   ]
-  const [banco, caixa, carteira] = contas.map((c) => c.id)
+  const [banco, caixa, carteira, cartao] = contas.map((c) => c.id)
+  const aluguelSerie = uid()
+  const notebookSerie = uid()
 
   const ls: Lancamento[] = []
   const transferencias: Transferencia[] = []
@@ -29,8 +35,10 @@ export function gerarExemplo(): {
     categoriaId: string, contaId: string, contato?: string,
   ) => {
     const data = dataDe(mes, dia)
-    const pago = data <= hoje
+    // compras no cartão são realizadas na data da compra
+    const pago = contaId === cartao || data <= hoje
     ls.push({ id: uid(), tipo, descricao, valor: Math.round(valor * 100) / 100, data, categoriaId, contaId, pago, dataPagamento: pago ? data : undefined, contato })
+    return ls[ls.length - 1]
   }
 
   for (let i = -6; i <= 1; i++) {
@@ -39,11 +47,15 @@ export function gerarExemplo(): {
     add(m, 12 + rnd() * 10, 'receita', 'Projeto de identidade visual', 900 + rnd() * 1600, 'freelance', carteira, rnd() > 0.5 ? 'Studio Alfa' : 'Padaria Bom Pão')
     add(m, 18 + rnd() * 6, 'receita', 'Vendas no balcão', 600 + rnd() * 500, 'outras-receitas', caixa)
     add(m, 20, 'receita', 'Rendimentos', 60 + rnd() * 120, 'investimentos', banco)
-    add(m, 10, 'despesa', 'Aluguel da sala', 1850, 'moradia', banco, 'Imobiliária Central')
+    add(m, 10, 'despesa', 'Aluguel da sala', 1850, 'moradia', banco, 'Imobiliária Central').serieId = aluguelSerie
     add(m, 10, 'despesa', 'Condomínio', 420, 'moradia', banco)
     add(m, 15, 'despesa', 'Energia elétrica', 140 + rnd() * 90, 'contas', banco, 'Companhia de Energia')
     add(m, 22, 'despesa', 'Internet e celular', 179.9, 'contas', banco, 'Operadora Fibra')
-    add(m, 8, 'despesa', 'Assinaturas de software', 55.9, 'lazer', carteira)
+    add(m, 8, 'despesa', 'Assinaturas de software', 55.9, 'lazer', cartao)
+    if (m <= atual) {
+      add(m, 12 + rnd() * 12, 'despesa', 'Restaurante', 80 + rnd() * 140, 'alimentacao', cartao)
+      add(m, 2 + rnd() * 20, 'despesa', 'Compras online', 60 + rnd() * 260, 'outras-despesas', cartao)
+    }
     add(m, 20, 'despesa', 'Plano de saúde', 389, 'saude', banco)
     add(m, 7, 'despesa', 'Curso online', 97, 'educacao', carteira)
     for (let k = 0; k < 3; k++) add(m, 3 + k * 9 + rnd() * 3, 'despesa', 'Supermercado', 180 + rnd() * 320, 'alimentacao', banco)
@@ -58,6 +70,23 @@ export function gerarExemplo(): {
     if (t2 <= hoje) transferencias.push({ id: uid(), origemId: caixa, destinoId: banco, valor: 500, data: t2, descricao: 'Depósito do caixa' })
   }
 
+  // notebook em 10x no cartão, começando 3 meses atrás
+  for (let i = 0; i < 10; i++) {
+    const data = dataDaOcorrencia(`${somarMes(atual, -3)}-15`, 'mensal', i)
+    ls.push({ id: uid(), tipo: 'despesa', descricao: 'Notebook', valor: 450, data, categoriaId: 'educacao', contaId: cartao, pago: true, dataPagamento: data, serieId: notebookSerie, parcela: { numero: i + 1, total: 10 }, contato: 'Loja Tech' })
+  }
+  // faturas já vencidas foram pagas pelo banco
+  for (const f of faturasDoCartao(contas[3], ls, [])) {
+    if (f.vencimento < hoje && f.total > 0)
+      transferencias.push({ id: uid(), origemId: banco, destinoId: cartao, valor: f.total, data: f.vencimento, descricao: `Pagamento da fatura Cartão Roxo`, fatura: { cartaoId: cartao, chave: f.chave } })
+  }
+  const alugueis = ls.filter((l) => l.serieId === aluguelSerie).sort((a, b) => a.data.localeCompare(b.data))
+  const notebooks = ls.filter((l) => l.serieId === notebookSerie)
+  const series: Serie[] = [
+    { id: aluguelSerie, tipo: 'recorrente', frequencia: 'mensal', geradoAte: alugueis[alugueis.length - 1].data, fim: null },
+    { id: notebookSerie, tipo: 'parcelado', frequencia: 'mensal', geradoAte: notebooks[9].data, fim: notebooks[9].data },
+  ]
+
   // contas em atraso para demonstrar alertas
   const luz = ls.find((l) => l.descricao === 'Energia elétrica' && mesDe(l.data) === atual && l.data < hoje)
   if (luz) Object.assign(luz, { pago: false, dataPagamento: undefined })
@@ -67,6 +96,7 @@ export function gerarExemplo(): {
   return {
     contas,
     transferencias,
+    series,
     lancamentos: ls,
     orcamentos: { alimentacao: 1700, transporte: 500, lazer: 400, contas: 380, saude: 550 },
   }
