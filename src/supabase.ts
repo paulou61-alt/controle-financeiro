@@ -19,9 +19,16 @@ const MENSAGENS: [RegExp, string][] = [
   [/rate limit|for security purposes|too many/i, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'],
   [/failed to fetch|network/i, 'Sem conexão com o servidor. Verifique sua internet.'],
   [/signups not allowed|signup is disabled/i, 'Novos cadastros estão desativados no momento.'],
+  [/error sending .*email|sending .*email/i, 'Não foi possível enviar o e-mail de confirmação. Tente novamente em alguns minutos.'],
+  [/not authorized/i, 'Este e-mail não pode receber mensagens no momento. Tente outro e-mail ou fale com o suporte.'],
+  [/weak|pwned|known to be|easy to guess/i, 'Essa senha é muito comum ou fraca. Escolha uma senha diferente.'],
+  [/database error/i, 'Erro no servidor ao criar a conta. Fale com o suporte.'],
+  [/invalid api key|no api key|apikey/i, 'Configuração do servidor inválida. Fale com o suporte.'],
 ]
 
 export function traduzirErro(e: unknown) {
   const msg = e instanceof Error ? e.message : typeof e === 'object' && e && 'message' in e ? String((e as { message: unknown }).message) : String(e)
-  return MENSAGENS.find(([re]) => re.test(msg))?.[1] ?? 'Não foi possível concluir. Tente novamente.'
+  console.error('[Supabase]', e)
+  const traducao = MENSAGENS.find(([re]) => re.test(msg))?.[1]
+  return traducao ?? `Não foi possível concluir. Detalhe: ${msg || 'erro desconhecido'}`
 }
