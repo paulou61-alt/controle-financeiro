@@ -62,11 +62,11 @@ e `VITE_STRIPE_LINK_VITALICIO` na Vercel (ou `.env.local`) e gere um novo build.
 Os valores exibidos são os totais cobrados por período, não parcelas mensais.
 Confirme que cada link usa o preço, moeda e recorrência correspondentes à tabela.
 
-Os quatro links de teste fornecidos estão configurados como padrão no componente.
-Cada cartão sinaliza o modo de teste, que não realiza cobrança real. Para ativar
-pagamentos reais, configure as variáveis acima com Payment Links de produção.
+Os quatro links de produção fornecidos estão configurados como padrão no componente.
+As variáveis acima permitem substituir os Payment Links. Se uma substituição usar
+um link de teste, o cartão sinaliza esse modo e não realiza cobrança real.
 Uma variável definida como vazia desabilita o respectivo plano; remova a variável
-para usar o link de teste padrão. Sem um link válido de `https://buy.stripe.com/...`, o plano mostra **Em breve**.
+para usar o link de produção padrão. Sem um link válido de `https://buy.stripe.com/...`, o plano mostra **Em breve**.
 No modo demonstração, todos os botões de contratação ficam desabilitados.
 Os links abrem o checkout hospedado pelo Stripe em outra aba. Nenhuma chave
 secreta deve ser colocada em variáveis `VITE_*`, pois elas são públicas.

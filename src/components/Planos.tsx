@@ -2,10 +2,10 @@ import { Check, CreditCard, ExternalLink, ShieldCheck, Sparkles } from 'lucide-r
 import './planos.css'
 
 const planos = [
-  { id: 'mensal', nome: 'Mensal', valor: '14,90', periodo: '/ mês', descricao: 'Flexibilidade para começar.', cobranca: 'Cobrança recorrente de R$ 14,90 a cada mês.', link: import.meta.env.VITE_STRIPE_LINK_MENSAL ?? 'https://buy.stripe.com/test_6oU4gzeJc7Pj4EiezUasg00' },
-  { id: 'semestral', nome: 'Semestral', valor: '69,90', periodo: '/ semestre', descricao: 'Seis meses para cuidar das suas finanças.', cobranca: 'Cobrança recorrente de R$ 69,90 a cada 6 meses.', link: import.meta.env.VITE_STRIPE_LINK_SEMESTRAL ?? 'https://buy.stripe.com/test_14A14n8kOc5z9YCajEasg01' },
-  { id: 'anual', nome: 'Anual', valor: '99,90', periodo: '/ ano', descricao: 'Um ano de organização financeira.', cobranca: 'Cobrança recorrente de R$ 99,90 a cada ano.', destaque: 'Melhor equilíbrio', link: import.meta.env.VITE_STRIPE_LINK_ANUAL ?? 'https://buy.stripe.com/test_bJecN5bx06Lf2wa9fAasg03' },
-  { id: 'vitalicio', nome: 'Vitalício', valor: '149,90', periodo: 'pagamento único', descricao: 'Pague uma vez, sem renovação.', cobranca: 'Pagamento único de R$ 149,90.', destaque: 'Pague uma vez', link: import.meta.env.VITE_STRIPE_LINK_VITALICIO ?? 'https://buy.stripe.com/test_eVq5kD8kO9Xrc6K3Vgasg02' },
+  { id: 'mensal', nome: 'Mensal', valor: '14,90', periodo: '/ mês', descricao: 'Flexibilidade para começar.', cobranca: 'Cobrança recorrente de R$ 14,90 a cada mês.', link: import.meta.env.VITE_STRIPE_LINK_MENSAL ?? 'https://buy.stripe.com/6oU7sL7bF2941AsfczgQE00' },
+  { id: 'semestral', nome: 'Semestral', valor: '69,90', periodo: '/ semestre', descricao: 'Seis meses para cuidar das suas finanças.', cobranca: 'Cobrança recorrente de R$ 69,90 a cada 6 meses.', link: import.meta.env.VITE_STRIPE_LINK_SEMESTRAL ?? 'https://buy.stripe.com/aFadR9dA3dRM3IA3tRgQE03' },
+  { id: 'anual', nome: 'Anual', valor: '99,90', periodo: '/ ano', descricao: 'Um ano de organização financeira.', cobranca: 'Cobrança recorrente de R$ 99,90 a cada ano.', destaque: 'Melhor equilíbrio', link: import.meta.env.VITE_STRIPE_LINK_ANUAL ?? 'https://buy.stripe.com/aFa6oH67BaFA3IA8ObgQE02' },
+  { id: 'vitalicio', nome: 'Vitalício', valor: '149,90', periodo: 'pagamento único', descricao: 'Pague uma vez, sem renovação.', cobranca: 'Pagamento único de R$ 149,90.', destaque: 'Pague uma vez', link: import.meta.env.VITE_STRIPE_LINK_VITALICIO ?? 'https://buy.stripe.com/6oU8wPbrVeVQ7YQ5BZgQE01' },
 ]
 
 // Aceita somente páginas de pagamento hospedadas pelo Stripe.
