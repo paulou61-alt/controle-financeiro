@@ -1,7 +1,17 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL
-const chave = import.meta.env.VITE_SUPABASE_ANON_KEY
+const limpar = (v?: string) => (v ?? '').trim().replace(/^["']|["']$/g, '')
+
+// Usa só a origem (https://xxxx.supabase.co), mesmo que tenham colado /rest/v1 ou outra rota no final
+const url = (() => {
+  const bruto = limpar(import.meta.env.VITE_SUPABASE_URL)
+  try {
+    return bruto ? new URL(bruto).origin : ''
+  } catch {
+    return bruto
+  }
+})()
+const chave = limpar(import.meta.env.VITE_SUPABASE_ANON_KEY)
 
 export const supabaseConfigurado = Boolean(url && chave)
 
