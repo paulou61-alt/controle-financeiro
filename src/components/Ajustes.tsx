@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { Download, Monitor, Moon, Palette, Sparkles, Sun, Trash2, Upload, User } from 'lucide-react'
+import { Download, KeyRound, Loader2, LogOut, Monitor, Moon, Palette, Sparkles, Sun, Trash2, Upload, User } from 'lucide-react'
+import { supabase, traduzirErro } from '../supabase'
 import type { Backup, Categoria, Lancamento, Orcamentos } from '../types'
 import type { Tema } from '../App'
 import { baixarArquivo, CATEGORIAS_PADRAO, hojeISO } from '../utils'
@@ -16,11 +17,27 @@ interface Props {
   tema: Tema
   setTema: (t: Tema) => void
   onCarregarExemplo: () => void
+  email: string
+  onSair: () => void
 }
 
 export default function Ajustes(p: Props) {
   const arquivo = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
+  const [novaSenha, setNovaSenha] = useState('')
+  const [msgSenha, setMsgSenha] = useState<{ ok: boolean; texto: string } | null>(null)
+  const [salvandoSenha, setSalvandoSenha] = useState(false)
+
+  const trocarSenha = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (novaSenha.length < 6) return setMsgSenha({ ok: false, texto: 'A senha deve ter pelo menos 6 caracteres.' })
+    setSalvandoSenha(true)
+    const { error } = await supabase.auth.updateUser({ password: novaSenha })
+    setSalvandoSenha(false)
+    if (error) return setMsgSenha({ ok: false, texto: traduzirErro(error) })
+    setNovaSenha('')
+    setMsgSenha({ ok: true, texto: 'Senha alterada com sucesso.' })
+  }
 
   const exportar = () => {
     const dados: Backup = { versao: 1, categorias: p.categorias, lancamentos: p.lancamentos, orcamentos: p.orcamentos }
@@ -62,11 +79,31 @@ export default function Ajustes(p: Props) {
   return (
     <div className="pagina grade-2">
       <section className="cartao">
-        <h3><User size={18} /> Perfil</h3>
-        <label className="campo">
-          <span>Como você quer ser chamado?</span>
-          <input value={p.nome} onChange={(e) => p.setNome(e.target.value)} placeholder="Seu nome" maxLength={40} />
-        </label>
+        <h3><User size={18} /> Minha conta</h3>
+        <div className="form-coluna">
+          <label className="campo">
+            <span>Como você quer ser chamado?</span>
+            <input value={p.nome} onChange={(e) => p.setNome(e.target.value)} placeholder="Seu nome" maxLength={40} />
+          </label>
+          <label className="campo">
+            <span>E-mail de acesso</span>
+            <input value={p.email} readOnly disabled />
+          </label>
+        </div>
+        <hr />
+        <form className="form-coluna" onSubmit={trocarSenha}>
+          <label className="campo">
+            <span><KeyRound size={14} /> Nova senha</span>
+            <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="Mínimo de 6 caracteres" autoComplete="new-password" />
+          </label>
+          {msgSenha && <p className={msgSenha.ok ? 'msg' : 'erro'} role="status">{msgSenha.texto}</p>}
+          <div className="acoes-esq">
+            <button className="btn" type="submit" disabled={salvandoSenha || !novaSenha}>
+              {salvandoSenha && <Loader2 size={16} className="girar" />} Alterar senha
+            </button>
+            <button className="btn perigo" type="button" onClick={p.onSair}><LogOut size={16} /> Sair da conta</button>
+          </div>
+        </form>
       </section>
 
       <section className="cartao">
@@ -86,8 +123,8 @@ export default function Ajustes(p: Props) {
       <section className="cartao">
         <h3><Download size={18} /> Backup</h3>
         <p className="ajuda">
-          Seus dados ficam guardados apenas neste navegador. Baixe um backup com frequência e use-o para levar
-          seus dados para outro computador ou celular.
+          Seus dados já são salvos automaticamente na nuvem. Se quiser, baixe uma cópia em arquivo para guardar
+          com você ou restaurar depois.
         </p>
         <p className="ajuda">{p.lancamentos.length} lançamento(s) · {p.categorias.length} categoria(s)</p>
         <div className="acoes-esq">
@@ -104,7 +141,7 @@ export default function Ajustes(p: Props) {
         <button className="btn" onClick={p.onCarregarExemplo}><Sparkles size={16} /> Carregar exemplo</button>
         <hr />
         <h3 className="perigo-titulo"><Trash2 size={18} /> Zona de perigo</h3>
-        <p className="ajuda">Remove todos os dados deste navegador e volta às categorias padrão.</p>
+        <p className="ajuda">Remove todos os lançamentos, categorias e orçamentos da sua conta.</p>
         <button className="btn perigo" onClick={apagarTudo}><Trash2 size={16} /> Apagar todos os dados</button>
       </section>
     </div>
