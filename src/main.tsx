@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import Root from './Root'
 import './styles.css'
 import './auth.css'
+import './financas.css'
 
 // aplica o tema salvo antes da primeira pintura, evitando "piscar"
 try {

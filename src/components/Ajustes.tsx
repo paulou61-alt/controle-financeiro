@@ -1,17 +1,18 @@
 import { useRef, useState } from 'react'
 import { Download, KeyRound, Loader2, LogOut, Monitor, Moon, Palette, Sparkles, Sun, Trash2, Upload, User } from 'lucide-react'
 import { supabase, traduzirErro } from '../supabase'
-import type { Backup, Categoria, Lancamento, Orcamentos } from '../types'
+import type { Backup, Categoria, ContaFinanceira, Lancamento, Orcamentos, Transferencia } from '../types'
 import type { Tema } from '../App'
-import { baixarArquivo, CATEGORIAS_PADRAO, hojeISO } from '../utils'
+import { baixarArquivo, hojeISO } from '../utils'
 
 interface Props {
   categorias: Categoria[]
   lancamentos: Lancamento[]
   orcamentos: Orcamentos
-  setCategorias: (c: Categoria[]) => void
-  setLancamentos: (l: Lancamento[]) => void
-  setOrcamentos: (o: Orcamentos) => void
+  contas: ContaFinanceira[]
+  transferencias: Transferencia[]
+  onImportar: (b: Partial<Backup>) => void
+  onApagarTudo: () => void
   nome: string
   setNome: (n: string) => void
   tema: Tema
@@ -40,7 +41,10 @@ export default function Ajustes(p: Props) {
   }
 
   const exportar = () => {
-    const dados: Backup = { versao: 1, categorias: p.categorias, lancamentos: p.lancamentos, orcamentos: p.orcamentos }
+    const dados: Backup = {
+      versao: 2, categorias: p.categorias, lancamentos: p.lancamentos, orcamentos: p.orcamentos,
+      contas: p.contas, transferencias: p.transferencias,
+    }
     baixarArquivo(`controle-financeiro-backup-${hojeISO()}.json`, JSON.stringify(dados, null, 2), 'application/json')
     setMsg('Backup baixado.')
   }
@@ -53,9 +57,7 @@ export default function Ajustes(p: Props) {
       const dados = JSON.parse(await f.text()) as Partial<Backup>
       if (!Array.isArray(dados.categorias) || !Array.isArray(dados.lancamentos)) throw new Error('formato')
       if (!confirm(`Importar ${dados.lancamentos.length} lançamento(s)? Os dados atuais serão substituídos.`)) return
-      p.setCategorias(dados.categorias)
-      p.setLancamentos(dados.lancamentos)
-      p.setOrcamentos(dados.orcamentos ?? {})
+      p.onImportar(dados)
       setMsg('Backup restaurado com sucesso.')
     } catch {
       setMsg('Arquivo inválido. Use um backup gerado por este sistema.')
@@ -63,10 +65,8 @@ export default function Ajustes(p: Props) {
   }
 
   const apagarTudo = () => {
-    if (!confirm('Apagar TODOS os lançamentos, categorias e orçamentos? Isso não pode ser desfeito.')) return
-    p.setLancamentos([])
-    p.setCategorias(CATEGORIAS_PADRAO)
-    p.setOrcamentos({})
+    if (!confirm('Apagar TODOS os lançamentos, contas, transferências, categorias e orçamentos? Isso não pode ser desfeito.')) return
+    p.onApagarTudo()
     setMsg('Dados apagados.')
   }
 
@@ -126,7 +126,7 @@ export default function Ajustes(p: Props) {
           Seus dados já são salvos automaticamente na nuvem. Se quiser, baixe uma cópia em arquivo para guardar
           com você ou restaurar depois.
         </p>
-        <p className="ajuda">{p.lancamentos.length} lançamento(s) · {p.categorias.length} categoria(s)</p>
+        <p className="ajuda">{p.lancamentos.length} lançamento(s) · {p.contas.length} conta(s) · {p.transferencias.length} transferência(s) · {p.categorias.length} categoria(s)</p>
         <div className="acoes-esq">
           <button className="btn primario" onClick={exportar}><Download size={16} /> Baixar backup</button>
           <button className="btn" onClick={() => arquivo.current?.click()}><Upload size={16} /> Restaurar backup</button>
@@ -141,7 +141,7 @@ export default function Ajustes(p: Props) {
         <button className="btn" onClick={p.onCarregarExemplo}><Sparkles size={16} /> Carregar exemplo</button>
         <hr />
         <h3 className="perigo-titulo"><Trash2 size={18} /> Zona de perigo</h3>
-        <p className="ajuda">Remove todos os lançamentos, categorias e orçamentos da sua conta.</p>
+        <p className="ajuda">Remove todos os lançamentos, contas, transferências, categorias e orçamentos da sua conta.</p>
         <button className="btn perigo" onClick={apagarTudo}><Trash2 size={16} /> Apagar todos os dados</button>
       </section>
     </div>

@@ -1,25 +1,59 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Categoria, Lancamento, Orcamentos } from './types'
+import type { Categoria, ContaFinanceira, Lancamento, Orcamentos, Transferencia } from './types'
 import { supabase } from './supabase'
-import { CATEGORIAS_PADRAO } from './utils'
+import { CATEGORIAS_PADRAO, hojeISO } from './utils'
 
 export interface Dados {
   nome: string
   categorias: Categoria[]
   lancamentos: Lancamento[]
   orcamentos: Orcamentos
+  contas: ContaFinanceira[]
+  transferencias: Transferencia[]
 }
 
 export type StatusNuvem = 'carregando' | 'erro-carregar' | 'salvo' | 'salvando' | 'erro-salvar'
 
-const padrao = (nome: string): Dados => ({ nome, categorias: CATEGORIAS_PADRAO, lancamentos: [], orcamentos: {} })
-
-const normalizar = (d: Partial<Dados>, nome: string): Dados => ({
-  nome: typeof d.nome === 'string' ? d.nome : nome,
-  categorias: Array.isArray(d.categorias) && d.categorias.length ? d.categorias : CATEGORIAS_PADRAO,
-  lancamentos: Array.isArray(d.lancamentos) ? d.lancamentos : [],
-  orcamentos: d.orcamentos && typeof d.orcamentos === 'object' ? d.orcamentos : {},
+export const contaPrincipal = (dataSaldoInicial = hojeISO()): ContaFinanceira => ({
+  id: 'principal', nome: 'Conta principal', tipo: 'banco', saldoInicial: 0, dataSaldoInicial,
 })
+
+const padrao = (nome: string): Dados => ({
+  nome, categorias: CATEGORIAS_PADRAO, lancamentos: [], orcamentos: {}, contas: [contaPrincipal()], transferencias: [],
+})
+
+/** Garante o formato atual dos dados, migrando versões antigas (sem contas financeiras) */
+export function normalizarDados(d: Partial<Dados>, nome = ''): Dados {
+  const brutos: Partial<Lancamento>[] = Array.isArray(d.lancamentos) ? d.lancamentos : []
+  let contas: ContaFinanceira[] = Array.isArray(d.contas) ? d.contas : []
+  if (contas.length === 0) {
+    const datas = brutos.flatMap((l) => [l.data, l.dataPagamento]).filter((x): x is string => !!x).sort()
+    contas = [contaPrincipal(datas[0] ?? hojeISO())]
+  }
+  const ids = new Set(contas.map((c) => c.id))
+  const contaPadrao = contas.find((c) => !c.arquivada)?.id ?? contas[0].id
+
+  const lancamentos = brutos.map((l) => {
+    const pago = !!l.pago
+    return {
+      ...l,
+      contaId: l.contaId && ids.has(l.contaId) ? l.contaId : contaPadrao,
+      pago,
+      dataPagamento: pago ? l.dataPagamento ?? l.data : undefined,
+    } as Lancamento
+  })
+
+  return {
+    nome: typeof d.nome === 'string' ? d.nome : nome,
+    categorias: Array.isArray(d.categorias) && d.categorias.length ? d.categorias : CATEGORIAS_PADRAO,
+    lancamentos,
+    orcamentos: d.orcamentos && typeof d.orcamentos === 'object' ? d.orcamentos : {},
+    contas,
+    transferencias: Array.isArray(d.transferencias) ? d.transferencias.filter((t) => ids.has(t.origemId) && ids.has(t.destinoId)) : [],
+  }
+}
+
+const normalizar = normalizarDados
 
 /** Dados da versão anterior (sem login), guardados no navegador */
 function lerDadosAntigos(): Partial<Dados> | null {
@@ -65,8 +99,11 @@ export function useDadosNuvem(userId: string, nomeInicial: string) {
       if (error) return setStatus('erro-carregar')
 
       let d: Dados
+      let salvoNoServidor: string
       if (data?.dados && Object.keys(data.dados).length) {
         d = normalizar(data.dados as Partial<Dados>, nomeInicial)
+        // se a migração alterou algo, o salvamento automático grava a versão nova
+        salvoNoServidor = JSON.stringify(data.dados)
       } else {
         const antigos = lerDadosAntigos()
         d = antigos ? normalizar({ ...antigos, nome: nomeInicial }, nomeInicial) : padrao(nomeInicial)
@@ -74,8 +111,9 @@ export function useDadosNuvem(userId: string, nomeInicial: string) {
         if (!ativo) return
         if (e2) return setStatus('erro-carregar')
         if (antigos) apagarDadosAntigos()
+        salvoNoServidor = JSON.stringify(d)
       }
-      ultimoSalvo.current = JSON.stringify(d)
+      ultimoSalvo.current = salvoNoServidor
       setDadosEstado(d)
       setStatus('salvo')
     })()

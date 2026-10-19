@@ -4,14 +4,11 @@ Sistema de controle financeiro pessoal feito com React + Vite + TypeScript, pron
 
 ## Funcionalidades
 
-- **Dashboard de acompanhamento**: saldo total com evolução de 12 meses, insights automáticos do mês, KPIs com variação em relação ao mês anterior, taxa de economia, fluxo de caixa (receitas x despesas x saldo), gastos por categoria, ritmo de gastos dia a dia comparado ao mês anterior, metas de gastos, contas pendentes com alerta de vencimento e ranking das maiores despesas.
-- **Lançamentos**: agrupados por dia, com ícones por categoria, filtros, busca, marcação de pago/pendente, recorrência (repetir por N meses) e exportação para CSV (abre no Excel).
-- **Orçamentos**: limite mensal por categoria com anel de progresso geral e alertas de 80% e 100%.
-- **Categorias**: crie, renomeie e escolha a cor.
-- **Configurações**: nome do usuário (saudação personalizada), tema claro/escuro/automático, backup e restauração em `.json` e dados de exemplo para demonstração.
-- Modo privacidade (ícone de olho) para ocultar os valores.
-- Menu lateral no computador e menu inferior com botão flutuante no celular.
-
+- **Dashboard financeiro**: saldo atual das contas, receitas recebidas, despesas pagas, **resultado de caixa** (recebido − pago, não é lucro contábil), totais a pagar e a receber, contas vencidas e **previsão de saldo para 30 dias**. Filtros por período e conta, gráfico de entradas e saídas, despesas por categoria, próximos vencimentos e atalhos para nova receita, nova despesa e transferência.
+- **Lançamentos**: receitas e despesas com descrição, valor, categoria, conta, vencimento, situação, data de pagamento/recebimento, cliente ou fornecedor e observações. Busca, filtros (período, tipo, categoria, conta e situação), baixa, reversão de baixa, exclusão com confirmação, recorrência e exportação CSV. "Atrasado" é calculado automaticamente.
+- **Contas a pagar e a receber**: telas separadas, organizadas em vencidas, vencem hoje, próximos vencimentos e pagas/recebidas, com totais e baixa direto na lista.
+- **Contas financeiras**: conta bancária, caixa e carteira digital, com saldo inicial e data. O saldo soma as movimentações realizadas a partir dessa data. Transferências entre contas próprias (não contam como receita nem despesa). Contas com histórico são arquivadas, preservando as movimentações.
+- **Orçamentos** por categoria, **categorias** personalizáveis, tema claro/escuro, modo privacidade e dados de exemplo.
 - **Login e senha** com cadastro, confirmação por e-mail, recuperação de senha e troca de senha.
 - Dados de cada usuário salvos na nuvem (Supabase) com salvamento automático. Cada pessoa só enxerga os próprios dados.
 
