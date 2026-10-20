@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import type { Categoria, Lancamento, Tipo } from '../types'
 import { uid } from '../utils'
 import { IconeCategoria } from '../ui'
+import { SeletorGrupoDre } from './Dre'
 
 interface Props {
   categorias: Categoria[]
@@ -51,6 +52,7 @@ export default function Categorias({ categorias, setCategorias, lancamentos }: P
             </label>
             <input className="nome-cat" defaultValue={c.nome} aria-label="Nome"
               onBlur={(e) => e.target.value.trim() && atualizar(c.id, { nome: e.target.value.trim() })} />
+            <SeletorGrupoDre cat={c} onChange={(dre) => atualizar(c.id, { dre })} />
             <span className="usos">{usos(c.id)} uso(s)</span>
             <button className="btn-icone pequeno perigo" onClick={() => remover(c)} aria-label={`Excluir ${c.nome}`}><Trash2 size={15} /></button>
           </li>
@@ -77,7 +79,7 @@ export default function Categorias({ categorias, setCategorias, lancamentos }: P
           </div>
           <button className="btn primario" type="submit"><Plus size={16} /> Adicionar</button>
         </div>
-        <p className="kpi-nota">Dica: clique no ícone de uma categoria para mudar a cor, e no nome para renomear.</p>
+        <p className="kpi-nota">Dica: clique no ícone de uma categoria para mudar a cor, e no nome para renomear. A caixa ao lado define em que linha da DRE a categoria entra.</p>
       </form>
       <div className="grade-2">
         {grupo('despesa')}

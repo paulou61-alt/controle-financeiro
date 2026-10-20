@@ -3,10 +3,12 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import {
-  AlertTriangle, ArrowDownRight, ArrowLeftRight, ArrowUpRight, CalendarClock, CheckCircle2, HandCoins, Info, Lightbulb,
+  AlertTriangle, ArrowDownRight, ArrowLeftRight, ArrowUpRight, CalendarClock, CheckCircle2, Flag, HandCoins, Info, Lightbulb,
   Plus, Receipt, Scale, Sparkles, TrendingDown, TrendingUp, Wallet,
 } from 'lucide-react'
-import type { Categoria, ContaFinanceira, Lancamento, Orcamentos, Tipo, Transferencia } from '../types'
+import type { Categoria, ContaFinanceira, Lancamento, Meta, Orcamentos, Tipo, Transferencia } from '../types'
+import { progressoMeta } from '../analise'
+import { ICONES_META, estadoMeta, textoStatus } from './Metas'
 import { diasEntre, ehCartao, noPeriodo, previsaoSaldo, rotuloPeriodo, saldoConta, type Fatura, type Periodo } from '../financas'
 import { formatData, hojeISO, mesAtual, mesDe, rotuloMes } from '../utils'
 import { DicaGrafico, IconeCategoria, Valor, useFmt, useOculto } from '../ui'
@@ -28,7 +30,8 @@ interface Props {
   onEditar: (l: Lancamento) => void
   onNovo: (tipo: Tipo) => void
   onTransferir: () => void
-  onIr: (aba: 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes') => void
+  onIr: (aba: 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes' | 'metas' | 'orcamentos') => void
+  metas: Meta[]
   onCarregarExemplo: () => void
   faturas: Fatura[]
   onPagarFatura: (f: Fatura) => void
@@ -124,6 +127,11 @@ export default function Dashboard(p: Props) {
     .filter((o) => o.cat && o.limite > 0)
     .sort((a, b) => b.pct - a.pct)
     .slice(0, 5)
+
+  const metasFin = p.metas.slice(0, 4).map((m) => {
+    const pr = progressoMeta(m, mesMetas, lancamentos, catPorId, contas, transferencias)
+    return { m, pr, estado: estadoMeta(m, pr, mesMetas) }
+  })
 
   const insights: { tom: 'bom' | 'ruim' | 'info'; texto: string }[] = []
   if (prev.menor.Saldo < 0) insights.push({ tom: 'ruim', texto: `Atenção: a previsão indica saldo negativo em ${formatData(prev.menor.data)} (${fmt(prev.menor.Saldo)}).` })
@@ -390,10 +398,38 @@ export default function Dashboard(p: Props) {
         )}
       </section>
 
-      {/* Metas de gastos */}
+      {/* Metas */}
+      {metasFin.length > 0 && (
+        <section className="cartao c12">
+          <div className="cartao-cab">
+            <h3><Flag size={18} /> Metas · {rotuloMes(mesMetas, true)}</h3>
+            <button className="btn link" onClick={() => p.onIr('metas')}>Ver metas</button>
+          </div>
+          <ul className="metas grade-metas">
+            {metasFin.map(({ m, pr, estado }) => {
+              const Icone = ICONES_META[m.tipo]
+              return (
+                <li key={m.id}>
+                  <span className="icone-cat" style={{ width: 34, height: 34, color: m.cor, background: `color-mix(in srgb, ${m.cor} 15%, transparent)` }}><Icone size={16} /></span>
+                  <div className="meta-info">
+                    <div className="lcd-linha"><span>{m.nome}</span><span className={`meta-pct ${estado}`}>{Math.round(pr.pct)}%</span></div>
+                    <div className={`barra ${estado}`}><span style={{ width: `${Math.max(0, Math.min(100, pr.pct))}%` }} /></div>
+                    <span className="meta-sub num">{fmt(pr.atual)} de {fmt(m.valor)} · {textoStatus(m, pr, fmt)}</span>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
+
+      {/* Orçamentos */}
       {metas.length > 0 && (
         <section className="cartao c12">
-          <h3>Metas de gastos · {rotuloMes(mesMetas, true)}</h3>
+          <div className="cartao-cab">
+            <h3>Orçamentos · {rotuloMes(mesMetas, true)}</h3>
+            <button className="btn link" onClick={() => p.onIr('orcamentos')}>Ajustar limites</button>
+          </div>
           <ul className="metas grade-metas">
             {metas.map((o) => {
               const estado = o.pct > 100 ? 'estourado' : o.pct >= 80 ? 'atencao' : 'ok'

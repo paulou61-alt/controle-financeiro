@@ -5,6 +5,7 @@ import './styles.css'
 import './auth.css'
 import './financas.css'
 import './recursos.css'
+import './analise.css'
 
 // aplica o tema salvo antes da primeira pintura, evitando "piscar"
 try {

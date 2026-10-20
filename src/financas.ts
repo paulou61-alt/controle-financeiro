@@ -29,7 +29,7 @@ export const sinal = (l: Lancamento) => (l.tipo === 'receita' ? l.valor : -l.val
 
 /* ---------- Períodos ---------- */
 
-export type PresetPeriodo = 'mes' | 'mes-anterior' | '30d' | '3m' | 'ano' | 'tudo' | 'personalizado'
+export type PresetPeriodo = 'mes' | 'mes-anterior' | '30d' | '3m' | '6m' | '12m' | 'ano' | 'tudo' | 'personalizado'
 
 export interface Periodo {
   preset: PresetPeriodo
@@ -42,6 +42,8 @@ export const PRESETS: { id: PresetPeriodo; rotulo: string }[] = [
   { id: 'mes-anterior', rotulo: 'Mês anterior' },
   { id: '30d', rotulo: 'Últimos 30 dias' },
   { id: '3m', rotulo: 'Últimos 3 meses' },
+  { id: '6m', rotulo: 'Últimos 6 meses' },
+  { id: '12m', rotulo: 'Últimos 12 meses' },
   { id: 'ano', rotulo: 'Este ano' },
   { id: 'tudo', rotulo: 'Todo o período' },
   { id: 'personalizado', rotulo: 'Personalizado' },
@@ -62,6 +64,10 @@ export function periodoDoPreset(preset: PresetPeriodo, atual?: Periodo): Periodo
       return { preset, de: somarDias(hoje, -29), ate: hoje }
     case '3m':
       return { preset, de: `${somarMes(mes, -2)}-01`, ate: fim(mes) }
+    case '6m':
+      return { preset, de: `${somarMes(mes, -5)}-01`, ate: fim(mes) }
+    case '12m':
+      return { preset, de: `${somarMes(mes, -11)}-01`, ate: fim(mes) }
     case 'ano':
       return { preset, de: `${hoje.slice(0, 4)}-01-01`, ate: `${hoje.slice(0, 4)}-12-31` }
     case 'tudo':

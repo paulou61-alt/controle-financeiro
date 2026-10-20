@@ -3,8 +3,10 @@ import {
   AlertTriangle, Banknote, CalendarRange, CheckCircle2, Clock, CreditCard, Landmark, Pencil, Repeat, Smartphone, Trash2,
   Undo2, Wallet, X, type LucideIcon,
 } from 'lucide-react'
-import type { Categoria, ContaFinanceira, Lancamento, TipoConta } from '../types'
-import { PRESETS, faturaDaCompra, periodoDoPreset, situacao, type Fatura, type Periodo, type PresetPeriodo } from '../financas'
+import type { Categoria, ContaFinanceira, Lancamento, Perfil, TipoConta } from '../types'
+import { PRESETS, faturaDaCompra, periodoDoPreset, rotuloPeriodo, situacao, type Fatura, type Periodo, type PresetPeriodo } from '../financas'
+import type { Regime } from '../analise'
+import { formatarDocumento } from '../formatos'
 import type { Escopo } from '../series'
 import { formatData, hojeISO, rotuloMes } from '../utils'
 import { IconeCategoria, useFmt } from '../ui'
@@ -12,7 +14,7 @@ import { IconeCategoria, useFmt } from '../ui'
 /* ---------- Contas financeiras ---------- */
 
 export const TIPOS_CONTA: { id: TipoConta; rotulo: string; icone: LucideIcon; cor: string }[] = [
-  { id: 'banco', rotulo: 'Conta bancária', icone: Landmark, cor: '#6d4dff' },
+  { id: 'banco', rotulo: 'Conta bancária', icone: Landmark, cor: '#059669' },
   { id: 'caixa', rotulo: 'Caixa', icone: Banknote, cor: '#12b76a' },
   { id: 'carteira', rotulo: 'Carteira digital', icone: Smartphone, cor: '#0ea5e9' },
   { id: 'cartao', rotulo: 'Cartão de crédito', icone: CreditCard, cor: '#f97316' },
@@ -60,6 +62,28 @@ export function FiltroConta({ contas, valor, onChange }: { contas: ContaFinancei
         {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.arquivada ? ' (arquivada)' : ''}</option>)}
       </select>
     </label>
+  )
+}
+
+export function SeletorRegime({ valor, onChange }: { valor: Regime; onChange: (r: Regime) => void }) {
+  return (
+    <div className="segmentado" role="group" aria-label="Regime">
+      <button className={valor === 'competencia' ? 'ativo' : ''} onClick={() => onChange('competencia')} title="Pelo vencimento, pago ou não">Competência</button>
+      <button className={valor === 'caixa' ? 'ativo' : ''} onClick={() => onChange('caixa')} title="Pela data em que foi pago ou recebido">Caixa</button>
+    </div>
+  )
+}
+
+/** Aparece só na impressão / PDF */
+export function CabecalhoImpressao({ titulo, periodo, perfil, nome }: { titulo: string; periodo?: Periodo; perfil: Perfil; nome: string }) {
+  const titular = perfil.nomeCompleto?.trim() || nome.trim()
+  const doc = perfil.documento ? formatarDocumento(perfil.documento, perfil.pessoa) : ''
+  return (
+    <header className="so-impressao cab-impressao">
+      <h2>{titulo}</h2>
+      <p>{[titular, doc].filter(Boolean).join(' · ')}</p>
+      <p>{periodo ? `Período: ${rotuloPeriodo(periodo)} · ` : ''}Emitido em {formatData(hojeISO())}</p>
+    </header>
   )
 }
 

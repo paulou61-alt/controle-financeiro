@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  ArrowDownRight, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight, Cloud, CloudOff, Eye, EyeOff, HandCoins,
+  ArrowDownRight, ArrowLeftRight, ArrowUpRight, BarChart3, ChevronLeft, ChevronRight, Cloud, CloudOff, Eye, EyeOff, FileSpreadsheet, Flag, HandCoins,
   Landmark, CreditCard, LayoutDashboard, List, Loader2, LogOut, Menu, Moon, Plus, Receipt, Settings, Sparkles, Sun, Tags, Target, Users,
   Trash2, Undo2, X,
   type LucideIcon,
 } from 'lucide-react'
-import type { Backup, Categoria, ContaFinanceira, Contato, Lancamento, Orcamentos, Perfil, Tipo, TipoConta, Transferencia } from './types'
+import type { Backup, Categoria, ContaFinanceira, Contato, Lancamento, Meta, Orcamentos, Perfil, Tipo, TipoConta, Transferencia } from './types'
 import { useLocalStorage } from './useLocalStorage'
 import { contaPrincipal, normalizarDados, type Dados, type StatusNuvem } from './useDadosNuvem'
-import { CATEGORIAS_PADRAO, hojeISO, mesAtual, rotuloMes, saudacao, somarMes, uid } from './utils'
+import { CATEGORIAS_PADRAO, formatData, hojeISO, mesAtual, rotuloMes, saudacao, somarMes, uid } from './utils'
 import { gerarExemplo } from './exemplo'
 import { ehCartao, faturasDoCartao, periodoDoPreset, resumoCartao, rotuloPeriodo, saldoConta, temHistorico, type Fatura, type Periodo } from './financas'
 import { ajustarParaConta, aplicarEdicao, aplicarExclusao, criarLancamentos, estenderSeries, type Escopo, type Repeticao } from './series'
@@ -29,22 +29,34 @@ import ImportarExtrato from './components/ImportarExtrato'
 import { EscolhaEscopo } from './components/comuns'
 import ContatosView from './components/Contatos'
 import FormContato from './components/FormContato'
+import Relatorios from './components/Relatorios'
+import DreView from './components/Dre'
+import MetasView from './components/Metas'
+import type { Regime } from './analise'
+import { diasDeTeste, gerenciarAssinatura, type Acesso } from './acesso'
 
-export type Aba = 'painel' | 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes' | 'contatos' | 'orcamentos' | 'categorias' | 'ajustes'
+export type Aba =
+  | 'painel' | 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes' | 'relatorios' | 'dre' | 'metas' | 'orcamentos'
+  | 'contatos' | 'categorias' | 'ajustes'
 export type Tema = 'sistema' | 'claro' | 'escuro'
 
-const ABAS: { id: Aba; rotulo: string; curto: string; icone: LucideIcon }[] = [
-  { id: 'painel', rotulo: 'Dashboard', curto: 'Início', icone: LayoutDashboard },
-  { id: 'lancamentos', rotulo: 'Lançamentos', curto: 'Lançam.', icone: List },
-  { id: 'pagar', rotulo: 'Contas a pagar', curto: 'Pagar', icone: Receipt },
-  { id: 'receber', rotulo: 'Contas a receber', curto: 'Receber', icone: HandCoins },
-  { id: 'contas', rotulo: 'Contas financeiras', curto: 'Contas', icone: Landmark },
-  { id: 'cartoes', rotulo: 'Cartões de crédito', curto: 'Cartões', icone: CreditCard },
-  { id: 'contatos', rotulo: 'Clientes e fornecedores', curto: 'Contatos', icone: Users },
-  { id: 'orcamentos', rotulo: 'Orçamentos', curto: 'Metas', icone: Target },
-  { id: 'categorias', rotulo: 'Categorias', curto: 'Categ.', icone: Tags },
-  { id: 'ajustes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings },
+type Secao = 'Financeiro' | 'Análise' | 'Organização'
+const ABAS: { id: Aba; rotulo: string; curto: string; icone: LucideIcon; secao: Secao }[] = [
+  { id: 'painel', rotulo: 'Dashboard', curto: 'Início', icone: LayoutDashboard, secao: 'Financeiro' },
+  { id: 'lancamentos', rotulo: 'Lançamentos', curto: 'Lançam.', icone: List, secao: 'Financeiro' },
+  { id: 'pagar', rotulo: 'Contas a pagar', curto: 'Pagar', icone: Receipt, secao: 'Financeiro' },
+  { id: 'receber', rotulo: 'Contas a receber', curto: 'Receber', icone: HandCoins, secao: 'Financeiro' },
+  { id: 'contas', rotulo: 'Contas financeiras', curto: 'Contas', icone: Landmark, secao: 'Financeiro' },
+  { id: 'cartoes', rotulo: 'Cartões de crédito', curto: 'Cartões', icone: CreditCard, secao: 'Financeiro' },
+  { id: 'relatorios', rotulo: 'Relatórios', curto: 'Relatórios', icone: BarChart3, secao: 'Análise' },
+  { id: 'dre', rotulo: 'DRE', curto: 'DRE', icone: FileSpreadsheet, secao: 'Análise' },
+  { id: 'metas', rotulo: 'Metas', curto: 'Metas', icone: Flag, secao: 'Análise' },
+  { id: 'orcamentos', rotulo: 'Orçamentos', curto: 'Orçam.', icone: Target, secao: 'Análise' },
+  { id: 'contatos', rotulo: 'Clientes e fornecedores', curto: 'Contatos', icone: Users, secao: 'Organização' },
+  { id: 'categorias', rotulo: 'Categorias', curto: 'Categ.', icone: Tags, secao: 'Organização' },
+  { id: 'ajustes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings, secao: 'Organização' },
 ]
+const SECOES: Secao[] = ['Financeiro', 'Análise', 'Organização']
 const NO_MENU_INFERIOR: Aba[] = ['painel', 'lancamentos', 'pagar', 'receber']
 
 const SUBTITULOS: Record<Aba, string> = {
@@ -55,7 +67,10 @@ const SUBTITULOS: Record<Aba, string> = {
   contas: 'Bancos, caixa e carteiras digitais, com saldo e transferências',
   cartoes: 'Faturas, limite e compras parceladas no cartão',
   contatos: 'Cadastro com CPF ou CNPJ, e-mail e telefone',
-  orcamentos: 'Limites mensais para manter os gastos sob controle',
+  relatorios: 'Mês a mês, por categoria, por cliente e fornecedor e por conta',
+  dre: 'Demonstração do resultado: receita, custos, despesas e lucro',
+  metas: 'Aonde você quer chegar, e quanto falta',
+  orcamentos: 'Limites mensais por categoria para manter os gastos sob controle',
   categorias: 'Organize suas receitas e despesas do seu jeito',
   ajustes: 'Perfil, aparência e backup dos seus dados',
 }
@@ -105,6 +120,9 @@ interface Props {
   onTentarSalvar: () => void
   email: string
   onSair: () => void
+  /** null = cobrança ainda não ligada */
+  acesso?: Acesso | null
+  onVerPlanos?: () => void
 }
 
 /** Contas criadas pelo gerador de exemplo (versões anteriores gravavam o exemplo na conta) */
@@ -115,10 +133,12 @@ type AcaoSerie =
   | { acao: 'editar'; original: Lancamento; editado: Lancamento }
   | { acao: 'excluir'; alvo: Lancamento }
 
-export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onSairDemo, onTentarSalvar, email, onSair }: Props) {
+export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onSairDemo, onTentarSalvar, email, onSair, acesso = null, onVerPlanos }: Props) {
   const [aba, setAbaEstado] = useState<Aba>('painel')
   const [mes, setMes] = useState(mesAtual())
   const [periodo, setPeriodo] = useState<Periodo>(() => periodoDoPreset('mes'))
+  // relatórios e DRE comparam meses, então começam com um intervalo maior
+  const [periodoAnalise, setPeriodoAnalise] = useState<Periodo>(() => periodoDoPreset('6m'))
   const [contaFiltro, setContaFiltro] = useState('')
   const [maisAberto, setMaisAberto] = useState(false)
   const [fabAberto, setFabAberto] = useState(false)
@@ -133,9 +153,10 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
   const [editandoContato, setEditandoContato] = useState<Contato | null | 'novo'>(null)
   const [tema, setTema] = useLocalStorage<Tema>('cf:tema', 'sistema')
   const [oculto, setOculto] = useLocalStorage('cf:oculto', false)
+  const [regime, setRegime] = useLocalStorage<Regime>('cf:regime', 'competencia')
   const escuro = usaTemaEscuro(tema)
 
-  const { categorias, lancamentos, orcamentos, nome, contas, transferencias, series, contatos: cadastros, perfil } = dados
+  const { categorias, lancamentos, orcamentos, nome, contas, transferencias, series, contatos: cadastros, perfil, metas } = dados
   const campo = <K extends keyof Dados>(k: K) => (v: Atualizacao<Dados[K]>) =>
     setDados((d) => ({ ...d, [k]: typeof v === 'function' ? (v as (x: Dados[K]) => Dados[K])(d[k]) : v }))
   const setCategorias = campo('categorias') as (v: Atualizacao<Categoria[]>) => void
@@ -146,6 +167,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
   const setNome = campo('nome') as (v: string) => void
   const setContatos = campo('contatos') as (v: Atualizacao<Contato[]>) => void
   const setPerfil = campo('perfil') as (v: Perfil) => void
+  const setMetas = campo('metas') as (v: Atualizacao<Meta[]>) => void
 
   const setAba = (a: Aba) => {
     setAbaEstado(a)
@@ -351,6 +373,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
   const resetarFiltros = () => {
     setContaFiltro('')
     setPeriodo(periodoDoPreset('mes'))
+    setPeriodoAnalise(periodoDoPreset('6m'))
     setAba('painel')
   }
 
@@ -389,7 +412,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
 
   const importar = (b: Partial<Backup>) => setDados((d) => normalizarDados({ ...b, nome: d.nome }, d.nome))
   const apagarTudo = () => {
-    setDados((d) => ({ ...d, categorias: CATEGORIAS_PADRAO, lancamentos: [], orcamentos: {}, contas: [contaPrincipal()], transferencias: [], series: [], contatos: [] }))
+    setDados((d) => ({ ...d, categorias: CATEGORIAS_PADRAO, lancamentos: [], orcamentos: {}, contas: [contaPrincipal()], transferencias: [], series: [], contatos: [], metas: [] }))
     setContaFiltro('')
   }
 
@@ -431,10 +454,10 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
           </div>
 
           <nav className="menu" aria-label="Menu principal">
-            <span className="menu-titulo">Financeiro</span>
-            {ABAS.slice(0, 6).map(itemMenu)}
-            <span className="menu-titulo espaco">Organização</span>
-            {ABAS.slice(6).map(itemMenu)}
+            {SECOES.map((s, i) => [
+              <span key={s} className={`menu-titulo ${i ? 'espaco' : ''}`}>{s}</span>,
+              ...ABAS.filter((a) => a.secao === s).map(itemMenu),
+            ])}
           </nav>
 
           <div className="lateral-rodape">
@@ -461,6 +484,26 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <button className="btn pequeno claro" onClick={sairDemo}><Undo2 size={15} /> Voltar para meus dados</button>
             </div>
           )}
+          {diasDeTeste(acesso) !== null && onVerPlanos && (
+            <div className="faixa-demo teste" role="status">
+              <Sparkles size={18} />
+              <span>
+                <strong>Teste grátis:</strong>{' '}
+                {diasDeTeste(acesso)! <= 1 ? 'termina hoje.' : `faltam ${diasDeTeste(acesso)} dias.`} Assine para continuar sem perder nada.
+              </span>
+              <button className="btn pequeno claro" onClick={onVerPlanos}>Ver planos</button>
+            </div>
+          )}
+          {acesso?.status === 'atrasado' && (
+            <div className="faixa-demo erro-pagamento" role="alert">
+              <CreditCard size={18} />
+              <span>
+                <strong>Não conseguimos cobrar sua assinatura.</strong> Atualize o cartão
+                {acesso.valido_ate ? ` até ${formatData(acesso.valido_ate.slice(0, 10))}` : ''} para não perder o acesso.
+              </span>
+              <button className="btn pequeno claro" onClick={() => gerenciarAssinatura().catch((e) => alert(e.message))}>Atualizar pagamento</button>
+            </div>
+          )}
           {contasExemplo.length > 0 && (
             <div className="faixa-demo aviso" role="status">
               <Sparkles size={18} />
@@ -475,7 +518,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
             </div>
             <div className="cab-acoes">
               <IndicadorNuvem status={status} onTentar={onTentarSalvar} />
-              {aba === 'orcamentos' && (
+              {(aba === 'orcamentos' || aba === 'metas') && (
                 <div className="seletor-mes">
                   <button onClick={() => setMes(somarMes(mes, -1))} aria-label="Mês anterior"><ChevronLeft size={18} /></button>
                   <button className="mes-atual" onClick={() => setMes(mesAtual())} title="Voltar ao mês atual">{rotuloMes(mes, true)}</button>
@@ -488,7 +531,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <button className="btn-icone so-celular" onClick={() => setTema(escuro ? 'claro' : 'escuro')} aria-label="Alternar tema">
                 {escuro ? <Sun size={19} /> : <Moon size={19} />}
               </button>
-              {aba !== 'painel' && (
+              {aba !== 'painel' && aba !== 'metas' && (
                 <button className="btn primario so-desktop" onClick={() => novo(aba === 'receber' ? 'receita' : 'despesa')}>
                   <Plus size={18} /> Novo lançamento
                 </button>
@@ -501,7 +544,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <Dashboard lancamentos={lancamentos} transferencias={transferencias} contas={contas} catPorId={catPorId} contaPorId={contaPorId}
                 orcamentos={orcamentos} periodo={periodo} setPeriodo={setPeriodo} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro}
                 onBaixa={darBaixa} onReverter={reverterBaixa} onEditar={propsLista.onEditar} onNovo={novo} onTransferir={() => transferir()}
-                onIr={setAba} onCarregarExemplo={carregarExemplo}
+                onIr={setAba} onCarregarExemplo={carregarExemplo} metas={metas}
                 faturas={faturas} onPagarFatura={setPagandoFatura} onAbrirFatura={abrirFatura} />
             )}
             {aba === 'lancamentos' && <Lancamentos {...propsLista} onImportar={() => setImportando({ conta: contaFiltro })} />}
@@ -524,6 +567,19 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
                 onNovaConta={() => { setTipoNovaConta(undefined); setEditandoConta('nova') }} onEditarConta={setEditandoConta} onArquivar={arquivarConta}
                 onExcluirConta={excluirConta} onTransferir={transferir} onExcluirTransferencia={excluirTransferencia} />
             )}
+            {aba === 'relatorios' && (
+              <Relatorios lancamentos={lancamentos} transferencias={transferencias} contas={contas} catPorId={catPorId} contatos={cadastros}
+                periodo={periodoAnalise} setPeriodo={setPeriodoAnalise} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro}
+                regime={regime} setRegime={setRegime} perfil={perfil} nome={nome} />
+            )}
+            {aba === 'dre' && (
+              <DreView lancamentos={lancamentos} categorias={categorias} setCategorias={setCategorias} catPorId={catPorId} contas={contas}
+                periodo={periodoAnalise} setPeriodo={setPeriodoAnalise} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro}
+                regime={regime} setRegime={setRegime} perfil={perfil} nome={nome} />
+            )}
+            {aba === 'metas' && (
+              <MetasView metas={metas} setMetas={setMetas} mes={mes} lancamentos={lancamentos} catPorId={catPorId} contas={contas} transferencias={transferencias} />
+            )}
             {aba === 'orcamentos' && (
               <OrcamentosView mes={mes} lancamentos={lancamentos} categorias={categorias} orcamentos={orcamentos} setOrcamentos={setOrcamentos} />
             )}
@@ -532,7 +588,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <Ajustes categorias={categorias} lancamentos={lancamentos} orcamentos={orcamentos} contas={contas} transferencias={transferencias}
                 onImportar={importar} onApagarTudo={apagarTudo}
                 nome={nome} setNome={setNome} tema={tema} setTema={setTema} onCarregarExemplo={carregarExemplo}
-                email={email} onSair={sair} perfil={perfil} setPerfil={setPerfil} contatos={cadastros} series={series} />
+                email={email} onSair={sair} perfil={perfil} setPerfil={setPerfil} contatos={cadastros} series={series} metas={metas} acesso={acesso} onVerPlanos={onVerPlanos} />
             )}
           </main>
         </div>

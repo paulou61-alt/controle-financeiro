@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
-import { Download, IdCard, KeyRound, Loader2, LogOut, Monitor, Moon, Palette, Sparkles, Sun, Trash2, Upload, User } from 'lucide-react'
+import { BadgeCheck, Download, IdCard, KeyRound, Loader2, LogOut, Monitor, Moon, Palette, Sparkles, Sun, Trash2, Upload, User } from 'lucide-react'
+import { NOME_PLANO, gerenciarAssinatura, type Acesso } from '../acesso'
 import { supabase, traduzirErro } from '../supabase'
-import type { Backup, Categoria, ContaFinanceira, Contato, Lancamento, Orcamentos, Perfil, Serie, Transferencia } from '../types'
+import type { Backup, Categoria, ContaFinanceira, Contato, Lancamento, Meta, Orcamentos, Perfil, Serie, Transferencia } from '../types'
 import { documentoCompleto, normalizarDocumento, rotuloDocumento, validarDocumento, validarTelefone } from '../formatos'
 import { InputDocumento, InputTelefone, SeletorPessoa } from './campos'
 import type { Tema } from '../App'
-import { baixarArquivo, hojeISO } from '../utils'
+import { baixarArquivo, formatData, hojeISO } from '../utils'
 
 interface Props {
   categorias: Categoria[]
@@ -26,6 +27,46 @@ interface Props {
   setPerfil: (p: Perfil) => void
   contatos: Contato[]
   series: Serie[]
+  metas: Meta[]
+  acesso: Acesso | null
+  onVerPlanos?: () => void
+}
+
+function MinhaAssinatura({ acesso, onVerPlanos }: { acesso: Acesso; onVerPlanos?: () => void }) {
+  const [abrindo, setAbrindo] = useState(false)
+  const [erro, setErro] = useState('')
+  const semFim = !acesso.valido_ate
+  const data = acesso.valido_ate ? formatData(acesso.valido_ate.slice(0, 10)) : ''
+  const situacao =
+    acesso.plano === 'teste' ? `Grátis até ${data}`
+      : acesso.status === 'atrasado' ? `Pagamento recusado · acesso garantido até ${data}`
+      : semFim ? 'Acesso liberado, sem data de fim'
+      : `Ativa · próxima renovação por volta de ${data}`
+  const abrir = async () => {
+    setErro('')
+    setAbrindo(true)
+    try {
+      await gerenciarAssinatura()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e))
+      setAbrindo(false)
+    }
+  }
+  return (
+    <section className="cartao">
+      <h3><BadgeCheck size={18} /> Minha assinatura</h3>
+      <p className="ajuda"><strong>Plano {NOME_PLANO[acesso.plano]}</strong> · {situacao}</p>
+      {acesso.stripe_customer_id ? (
+        <>
+          <p className="ajuda">No portal do Stripe você troca o cartão, muda de plano, baixa os recibos ou cancela.</p>
+          <button className="btn" onClick={abrir} disabled={abrindo}>{abrindo && <Loader2 size={16} className="girar" />} Gerenciar assinatura</button>
+        </>
+      ) : acesso.plano === 'teste' && onVerPlanos ? (
+        <button className="btn primario" onClick={onVerPlanos}>Escolher um plano</button>
+      ) : null}
+      {erro && <p className="erro" role="alert">{erro}</p>}
+    </section>
+  )
 }
 
 function DadosCadastrais({ perfil, onSalvar }: { perfil: Perfil; onSalvar: (p: Perfil) => void }) {
@@ -88,7 +129,7 @@ export default function Ajustes(p: Props) {
   const exportar = () => {
     const dados: Backup = {
       versao: 2, categorias: p.categorias, lancamentos: p.lancamentos, orcamentos: p.orcamentos,
-      contas: p.contas, transferencias: p.transferencias, contatos: p.contatos, perfil: p.perfil, series: p.series,
+      contas: p.contas, transferencias: p.transferencias, contatos: p.contatos, perfil: p.perfil, series: p.series, metas: p.metas,
     }
     baixarArquivo(`controle-financeiro-backup-${hojeISO()}.json`, JSON.stringify(dados, null, 2), 'application/json')
     setMsg('Backup baixado.')
@@ -110,7 +151,7 @@ export default function Ajustes(p: Props) {
   }
 
   const apagarTudo = () => {
-    if (!confirm('Apagar TODOS os lançamentos, contas, transferências, categorias e orçamentos? Isso não pode ser desfeito.')) return
+    if (!confirm('Apagar TODOS os lançamentos, contas, transferências, categorias, orçamentos e metas? Isso não pode ser desfeito.')) return
     p.onApagarTudo()
     setMsg('Dados apagados.')
   }
@@ -157,6 +198,8 @@ export default function Ajustes(p: Props) {
         <DadosCadastrais perfil={p.perfil} onSalvar={p.setPerfil} />
       </section>
 
+      {p.acesso && <MinhaAssinatura acesso={p.acesso} onVerPlanos={p.onVerPlanos} />}
+
       <section className="cartao">
         <h3><Palette size={18} /> Aparência</h3>
         <div className="opcoes-tema">
@@ -194,7 +237,7 @@ export default function Ajustes(p: Props) {
         <button className="btn" onClick={p.onCarregarExemplo}><Sparkles size={16} /> Ver demonstração</button>
         <hr />
         <h3 className="perigo-titulo"><Trash2 size={18} /> Zona de perigo</h3>
-        <p className="ajuda">Remove todos os lançamentos, contas, transferências, categorias e orçamentos da sua conta.</p>
+        <p className="ajuda">Remove todos os lançamentos, contas, transferências, categorias, orçamentos e metas da sua conta.</p>
         <button className="btn perigo" onClick={apagarTudo}><Trash2 size={16} /> Apagar todos os dados</button>
       </section>
     </div>

@@ -149,7 +149,7 @@ export default function Login() {
   const forca = forcaSenha(senha)
   const titulos: Record<Modo, [string, string]> = {
     entrar: ['Bem-vindo de volta', 'Entre para ver suas finanças.'],
-    cadastrar: ['Crie sua conta', 'Comece a organizar seu dinheiro em minutos.'],
+    cadastrar: ['Crie sua conta', 'Teste grátis por 7 dias, sem cartão de crédito.'],
     recuperar: ['Recuperar senha', 'Informe seu e-mail e enviaremos um link para criar uma nova senha.'],
   }
 

@@ -108,7 +108,7 @@ div.mov-info { cursor: default; }
 .faixa-demo {
   position: sticky; top: 0; z-index: 9; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 10px 36px; color: #fff; font-size: 14px;
-  background: linear-gradient(90deg, #5b3df5, #8a5cff 60%, #22b8d8);
+  background: linear-gradient(90deg, #059669, #10b981 60%, #22b8d8);
 }
 .faixa-demo.aviso { background: linear-gradient(90deg, #b45309, #f59e0b); }
 .faixa-demo span { flex: 1; min-width: 200px; }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Categoria, ContaFinanceira, Contato, Lancamento, Orcamentos, Perfil, Serie, Transferencia } from './types'
+import type { Categoria, ContaFinanceira, Contato, Lancamento, Meta, Orcamentos, Perfil, Serie, Transferencia } from './types'
 import { supabase } from './supabase'
 import { CATEGORIAS_PADRAO, hojeISO, uid } from './utils'
 
@@ -37,6 +37,7 @@ export interface Dados {
   series: Serie[]
   contatos: Contato[]
   perfil: Perfil
+  metas: Meta[]
 }
 
 export type StatusNuvem = 'carregando' | 'erro-carregar' | 'salvo' | 'salvando' | 'erro-salvar'
@@ -47,7 +48,7 @@ export const contaPrincipal = (dataSaldoInicial = hojeISO()): ContaFinanceira =>
 
 const padrao = (nome: string): Dados => ({
   nome, categorias: CATEGORIAS_PADRAO, lancamentos: [], orcamentos: {}, contas: [contaPrincipal()], transferencias: [], series: [],
-  contatos: [], perfil: { pessoa: 'fisica' },
+  contatos: [], perfil: { pessoa: 'fisica' }, metas: [],
 })
 
 /** Garante o formato atual dos dados, migrando versões antigas (sem contas financeiras) */
@@ -83,6 +84,7 @@ export function normalizarDados(d: Partial<Dados>, nome = ''): Dados {
     series: Array.isArray(d.series) ? d.series : [],
     contatos,
     perfil,
+    metas: Array.isArray(d.metas) ? d.metas.filter((m) => m && typeof m.valor === 'number' && m.tipo) : [],
   }
 }
 

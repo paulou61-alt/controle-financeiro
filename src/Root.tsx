@@ -6,6 +6,8 @@ import { normalizarDados, useDadosNuvem, type Dados } from './useDadosNuvem'
 import { gerarExemplo } from './exemplo'
 import { CATEGORIAS_PADRAO } from './utils'
 import Login from './components/Login'
+import Planos from './components/Planos'
+import { acessoAtivo, limparRetornoDoPagamento, useAcesso, type Acesso } from './acesso'
 import App from './App'
 
 function Splash({ texto = 'Carregando…' }: { texto?: string }) {
@@ -85,7 +87,7 @@ function NovaSenha({ onConcluir }: { onConcluir: () => void }) {
   )
 }
 
-function AreaLogada({ user }: { user: User }) {
+function AreaLogada({ user, acesso, onVerPlanos }: { user: User; acesso: Acesso | null; onVerPlanos: () => void }) {
   const nomeInicial = String(user.user_metadata?.nome ?? '')
   const { dados, setDados, status, tentarNovamente } = useDadosNuvem(user.id, nomeInicial)
   // Modo demonstração: dados de exemplo só na memória, nunca gravados na conta
@@ -115,7 +117,44 @@ function AreaLogada({ user }: { user: User }) {
       onTentarSalvar={tentarNovamente}
       email={user.email ?? ''}
       onSair={() => supabase.auth.signOut()}
+      acesso={acesso}
+      onVerPlanos={onVerPlanos}
     />
+  )
+}
+
+/** Só carrega os dados de quem tem acesso ativo; os demais veem os planos */
+function ComAcesso({ user }: { user: User }) {
+  const email = user.email ?? ''
+  const { estado, confirmando } = useAcesso(email)
+  const sair = () => supabase.auth.signOut()
+  const liberado = !estado.carregando && (estado.semControle || acessoAtivo(estado.acesso))
+  const [verPlanos, setVerPlanos] = useState(false)
+
+  useEffect(() => {
+    if (liberado) limparRetornoDoPagamento()
+  }, [liberado])
+
+  if (estado.carregando) return <Splash texto="Verificando sua assinatura…" />
+  if (estado.erro)
+    return (
+      <TelaSimples icone={<CloudOff size={28} />} titulo="Não foi possível verificar sua assinatura">
+        <p>Verifique sua conexão com a internet e tente novamente.</p>
+        <div className="bv-acoes">
+          <button className="btn primario grande" onClick={() => location.reload()}>Tentar novamente</button>
+          <button className="btn grande" onClick={sair}>Sair</button>
+        </div>
+      </TelaSimples>
+    )
+  if (!liberado) return <Planos email={email} acesso={estado.acesso} confirmando={confirmando} onSair={sair} />
+  return (
+    <>
+      {verPlanos && <Planos email={email} acesso={estado.acesso} confirmando={false} onSair={sair} onVoltar={() => setVerPlanos(false)} />}
+      {/* o app continua montado por baixo, para não perder o que estava aberto */}
+      <div hidden={verPlanos}>
+        <AreaLogada user={user} acesso={estado.acesso} onVerPlanos={() => { setVerPlanos(true); window.scrollTo({ top: 0 }) }} />
+      </div>
+    </>
   )
 }
 
@@ -135,7 +174,7 @@ function ComAutenticacao() {
   if (sessao === undefined) return <Splash />
   if (sessao && recuperando) return <NovaSenha onConcluir={() => setRecuperando(false)} />
   if (!sessao) return <Login />
-  return <AreaLogada key={sessao.user.id} user={sessao.user} />
+  return <ComAcesso key={sessao.user.id} user={sessao.user} />
 }
 
 export default function Root() {

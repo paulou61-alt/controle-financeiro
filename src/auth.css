@@ -20,10 +20,10 @@
 
 .vitrine {
   position: relative; overflow: hidden; isolation: isolate; color: #fff;
-  background: linear-gradient(150deg, #120a3d 0%, #2b1a8c 35%, #5b3df5 70%, #22b8d8 130%);
+  background: linear-gradient(150deg, #022c22 0%, #064e3b 35%, #059669 70%, #22b8d8 130%);
 }
 .vt-orbe { position: absolute; border-radius: 50%; filter: blur(60px); z-index: -1; animation: deriva 14s ease-in-out infinite; }
-.vt-orbe.a { width: 420px; height: 420px; right: -120px; top: -100px; background: rgb(139 109 255 / .55); }
+.vt-orbe.a { width: 420px; height: 420px; right: -120px; top: -100px; background: rgb(16 185 129 / .55); }
 .vt-orbe.b { width: 360px; height: 360px; left: -100px; bottom: -120px; background: rgb(34 214 240 / .35); animation-delay: -7s; }
 .vt-grade {
   position: absolute; inset: 0; z-index: -1; opacity: .5;
@@ -61,7 +61,7 @@
 .vt-card.meta { left: 12%; bottom: 0; display: flex; align-items: center; gap: 12px; animation-delay: -3s; }
 
 .vt-texto h2 { font-size: clamp(28px, 2.6vw, 40px); font-weight: 800; line-height: 1.12; letter-spacing: -.03em; max-width: 520px; }
-.vt-texto h2 em { font-style: normal; background: linear-gradient(90deg, #a5f3fc, #c4b5fd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.vt-texto h2 em { font-style: normal; background: linear-gradient(90deg, #a5f3fc, #a7f3d0); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .vt-texto ul { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .vt-texto li { display: flex; align-items: center; gap: 12px; font-size: 15px; opacity: .92; }
 .vt-texto li svg { flex: none; padding: 7px; box-sizing: content-box; border-radius: 10px; background: rgb(255 255 255 / .12); }
@@ -132,7 +132,7 @@ input:disabled { opacity: .7; cursor: not-allowed; }
   .login-lado {
     justify-content: flex-start; gap: 24px; padding: 32px 16px 40px; min-height: 100vh;
     background:
-      radial-gradient(600px 320px at 50% -60px, rgb(109 77 255 / .35), transparent 70%),
+      radial-gradient(600px 320px at 50% -60px, rgb(5 150 105 / .35), transparent 70%),
       radial-gradient(400px 260px at 100% 0, rgb(34 195 221 / .2), transparent 70%);
   }
   .login-topo-mobile { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; letter-spacing: -.02em; margin-top: 8px; }

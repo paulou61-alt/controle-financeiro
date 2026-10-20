@@ -37,7 +37,7 @@
 .cartao-visual {
   flex: 0 0 300px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; padding: 20px; min-height: 180px;
   border-radius: 22px; border: 2px solid transparent; color: #fff; text-align: left;
-  background: linear-gradient(135deg, #1e1b4b, #4c1d95 50%, #c2410c 140%);
+  background: linear-gradient(135deg, #022c22, #065f46 50%, #c2410c 140%);
   box-shadow: 0 16px 36px -14px rgb(30 27 75 / .6); transition: transform .2s, border-color .2s;
 }
 .cartao-visual:hover { transform: translateY(-2px); }

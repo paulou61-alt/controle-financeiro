@@ -27,11 +27,16 @@ export interface Perfil {
 }
 export type Frequencia = 'semanal' | 'quinzenal' | 'mensal' | 'anual'
 
+/** Linha da DRE em que a categoria entra; "fora" = não afeta o resultado (retiradas, empréstimos, investimentos) */
+export type GrupoDre = 'receita' | 'deducao' | 'custo' | 'despesa' | 'receita-financeira' | 'despesa-financeira' | 'imposto' | 'fora'
+
 export interface Categoria {
   id: string
   nome: string
   tipo: Tipo
   cor: string
+  /** Sem valor = receita operacional ou despesa operacional */
+  dre?: GrupoDre
 }
 
 export interface Lancamento {
@@ -97,6 +102,31 @@ export interface Transferencia {
   fatura?: { cartaoId: string; chave: string }
 }
 
+/**
+ * juntar: chegar a um valor até um prazo (progresso pelo saldo de uma conta ou por aportes)
+ * receita / resultado: valor mínimo por mês · gastos: valor máximo por mês
+ */
+export type TipoMeta = 'juntar' | 'receita' | 'resultado' | 'gastos'
+
+export interface Aporte {
+  id: string
+  data: string
+  valor: number
+}
+
+export interface Meta {
+  id: string
+  nome: string
+  tipo: TipoMeta
+  valor: number
+  cor: string
+  criadaEm: string
+  /** Somente "juntar" */
+  prazo?: string
+  contaId?: string
+  aportes?: Aporte[]
+}
+
 /** Limite mensal por categoria de despesa (categoriaId -> valor) */
 export type Orcamentos = Record<string, number>
 
@@ -110,4 +140,5 @@ export interface Backup {
   series?: Serie[]
   contatos?: Contato[]
   perfil?: Perfil
+  metas?: Meta[]
 }

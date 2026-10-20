@@ -1,4 +1,4 @@
-import type { ContaFinanceira, Lancamento, Orcamentos, Serie, Transferencia } from './types'
+import type { ContaFinanceira, Lancamento, Meta, Orcamentos, Serie, Transferencia } from './types'
 import { diasNoMes, hojeISO, mesAtual, mesDe, somarMes, uid } from './utils'
 import { faturasDoCartao } from './financas'
 import { dataDaOcorrencia } from './series'
@@ -10,6 +10,7 @@ export function gerarExemplo(): {
   contas: ContaFinanceira[]
   transferencias: Transferencia[]
   series: Serie[]
+  metas: Meta[]
 } {
   let semente = 20261019
   const rnd = () => (semente = (semente * 16807) % 2147483647) / 2147483647
@@ -99,5 +100,14 @@ export function gerarExemplo(): {
     series,
     lancamentos: ls,
     orcamentos: { alimentacao: 1700, transporte: 500, lazer: 400, contas: 380, saude: 550 },
+    metas: [
+      {
+        id: 'meta-reserva-exemplo', nome: 'Reserva de emergência', tipo: 'juntar', valor: 30000, cor: '#12b76a', criadaEm: inicio,
+        prazo: `${somarMes(atual, 14)}-01`,
+        aportes: [0, 1, 2, 3, 4, 5].map((i) => ({ id: uid(), data: dataDe(somarMes(atual, i - 5), 6), valor: i === 0 ? 6000 : 900 + Math.round(rnd() * 6) * 100 })),
+      },
+      { id: 'meta-receita-exemplo', nome: 'Faturar R$ 10 mil por mês', tipo: 'receita', valor: 10000, cor: '#059669', criadaEm: inicio },
+      { id: 'meta-gastos-exemplo', nome: 'Gastos abaixo de R$ 7.500', tipo: 'gastos', valor: 7500, cor: '#f59e0b', criadaEm: inicio },
+    ],
   }
 }
