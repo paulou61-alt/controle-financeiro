@@ -62,7 +62,10 @@ export function useAcesso(email: string) {
       const semTabela = error.code === '42P01' || error.code === 'PGRST205' || /does not exist|schema cache/i.test(error.message)
       return { carregando: false as const, acesso: null, semControle: semTabela, erro: !semTabela }
     }
-    return { carregando: false as const, acesso: (data as Acesso | null) ?? null, semControle: false, erro: false }
+    if (data) return { carregando: false as const, acesso: data as Acesso, semControle: false, erro: false }
+    // sem registro ainda (conta anterior à cobrança): o banco cria o teste grátis de 7 dias
+    const teste = await supabase.rpc('garantir_teste_gratis').select('email, plano, status, valido_ate, stripe_customer_id').maybeSingle()
+    return { carregando: false as const, acesso: (teste.data as Acesso | null) ?? null, semControle: false, erro: false }
   }, [email])
 
   useEffect(() => {

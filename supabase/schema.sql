@@ -51,8 +51,10 @@ $$;
 
 /* ---------- Teste grátis de 7 dias ---------- */
 
--- Toda conta nova ganha 7 dias de acesso, sem cartão. Vale uma vez por e-mail:
--- se a pessoa apagar a conta e criar de novo, o registro do e-mail continua e o teste não se renova.
+-- Todo usuário, novo ou antigo, ganha 7 dias de acesso sem cartão, automaticamente:
+--  - quem cria a conta ganha na hora (gatilho abaixo);
+--  - quem já tinha conta ganha no primeiro acesso depois que este script rodar (função chamada pelo app).
+-- Vale uma vez por e-mail: apagar a conta e criar de novo não renova o teste.
 create or replace function public.iniciar_teste_gratis() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
@@ -69,6 +71,26 @@ drop trigger if exists ao_criar_conta_teste_gratis on auth.users;
 create trigger ao_criar_conta_teste_gratis
   after insert on auth.users
   for each row execute function public.iniciar_teste_gratis();
+
+-- Chamada pelo app quando a pessoa entra e ainda não tem registro de acesso (contas antigas).
+-- Só cria o teste para o próprio e-mail de quem está logado, e só se ainda não existir nada para ele.
+create or replace function public.garantir_teste_gratis() returns setof public.acessos
+language plpgsql security definer set search_path = public as $$
+declare
+  v_email text := lower(auth.jwt() ->> 'email');
+begin
+  if v_email is null or auth.uid() is null then
+    return;
+  end if;
+  insert into public.acessos (email, user_id, plano, status, valido_ate, observacao)
+  values (v_email, auth.uid(), 'teste', 'ativo', now() + interval '7 days', 'teste grátis de 7 dias')
+  on conflict (email) do nothing;
+  return query select * from public.acessos where email = v_email;
+end
+$$;
+
+revoke all on function public.garantir_teste_gratis() from public, anon;
+grant execute on function public.garantir_teste_gratis() to authenticated;
 
 /* ---------- Dados: cada usuário só enxerga os próprios, e só com acesso ativo ---------- */
 
@@ -90,11 +112,11 @@ create policy "atualizar os proprios dados" on public.dados_usuario
 
 /* ---------- Liberação manual ---------- */
 
--- IMPORTANTE: libere o SEU e-mail antes de mais nada, senão você também fica bloqueado.
--- Troque o e-mail abaixo, tire os dois traços do começo da linha e rode:
+-- Seu próprio acesso: você também ganha os 7 dias de teste. Para não ter prazo,
+-- troque o e-mail abaixo, tire os dois traços do começo da linha e rode:
 -- insert into public.acessos (email, plano, status, observacao) values ('seu@email.com', 'cortesia', 'ativo', 'dono') on conflict (email) do update set status = 'ativo', plano = 'cortesia', valido_ate = null;
 
--- (Opcional) dar cortesia a todos que já tinham conta antes da cobrança começar:
+-- (Opcional) dar acesso livre, em vez do teste, a todos que já tinham conta antes da cobrança começar:
 -- insert into public.acessos (email, user_id, plano, status, observacao)
 --   select lower(email), id, 'cortesia', 'ativo', 'conta anterior à cobrança' from auth.users where email is not null
 --   on conflict (email) do nothing;

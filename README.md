@@ -36,7 +36,7 @@ Para rodar localmente, copie `.env.example` para `.env.local` e preencha os mesm
 
 ## Assinaturas com Stripe
 
-Toda conta nova ganha **7 dias de teste grátis**, sem cartão (uma vez por e-mail). Durante o teste aparece uma faixa com os dias que faltam e o botão "Ver planos". Depois disso, só entra quem tem acesso ativo. Quem não tem vê a tela de planos (Mensal R$ 14,90, Semestral R$ 69,90, Anual R$ 99,90 e Vitalício R$ 149,90). O bloqueio vale no banco de dados, não só na tela.
+Todo usuário ganha **7 dias de teste grátis** automaticamente, sem cartão e uma vez por e-mail: quem cria a conta ganha na hora, e quem já tinha conta ganha no primeiro acesso depois que a cobrança é ligada. Durante o teste aparece uma faixa com os dias que faltam e o botão "Ver planos". Depois disso, só entra quem tem acesso ativo. Quem não tem vê a tela de planos (Mensal R$ 14,90, Semestral R$ 69,90, Anual R$ 99,90 e Vitalício R$ 149,90). O bloqueio vale no banco de dados, não só na tela.
 
 | Situação no Stripe | Acesso |
 |---|---|
@@ -51,7 +51,7 @@ Os dados de quem foi bloqueado continuam guardados. Se a pessoa assinar de novo 
 
 ### Configuração (faça primeiro no modo de teste do Stripe)
 
-1. **Supabase**: rode de novo o [`supabase/schema.sql`](supabase/schema.sql) no SQL Editor. Em seguida, **libere o seu próprio e-mail** com a linha `insert ... 'cortesia'` que está no fim do arquivo. Sem isso, você também fica bloqueado. Mantenha ligada a confirmação de e-mail (Authentication → Providers → Email → Confirm email): é ela que garante que ninguém se cadastra com o e-mail de quem pagou.
+1. **Supabase**: rode de novo o [`supabase/schema.sql`](supabase/schema.sql) no SQL Editor. Você também ganha os 7 dias de teste; para não ter prazo, libere o seu e-mail com a linha `insert ... 'cortesia'` que está no fim do arquivo. Mantenha ligada a confirmação de e-mail (Authentication → Providers → Email → Confirm email): é ela que garante que ninguém se cadastra com o e-mail de quem pagou.
 2. **Stripe → Catálogo de produtos**: crie o produto "Controle Financeiro" com 4 preços em BRL: R$ 14,90 recorrente mensal, R$ 69,90 recorrente a cada 6 meses, R$ 99,90 recorrente anual e R$ 149,90 avulso. Copie o ID de cada preço (`price_...`).
 3. **Stripe → Desenvolvedores → Webhooks → Adicionar destino**: URL `https://SEU-SITE/api/stripe-webhook`, com os eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`, `charge.refunded` e `charge.dispute.created`. Copie o segredo de assinatura (`whsec_...`).
 4. **Stripe → Configurações → Portal do cliente**: ative o portal e permita atualizar a forma de pagamento, ver as faturas, cancelar e trocar entre os planos Mensal, Semestral e Anual.
