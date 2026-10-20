@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { supabase, traduzirErro } from '../supabase'
 
-type Modo = 'entrar' | 'cadastrar' | 'recuperar'
+export type Modo = 'entrar' | 'cadastrar' | 'recuperar'
 
 function forcaSenha(s: string) {
   let p = 0
@@ -91,8 +91,8 @@ function Vitrine() {
   )
 }
 
-export default function Login() {
-  const [modo, setModo] = useState<Modo>('entrar')
+export default function Login({ modoInicial = 'entrar', onVoltar }: { modoInicial?: Modo; onVoltar?: () => void }) {
+  const [modo, setModo] = useState<Modo>(modoInicial)
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -163,6 +163,9 @@ export default function Login() {
           <span>Finanças</span>
         </div>
 
+        {onVoltar && (
+          <button type="button" className="voltar voltar-site" onClick={onVoltar}><ArrowLeft size={16} /> Voltar para o site</button>
+        )}
         <form className="login-caixa" onSubmit={enviar} noValidate>
           {modo === 'recuperar' ? (
             <button type="button" className="voltar" onClick={() => trocar('entrar')}><ArrowLeft size={16} /> Voltar para o login</button>

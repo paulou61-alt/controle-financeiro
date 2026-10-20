@@ -5,7 +5,8 @@ import { supabase, supabaseConfigurado, traduzirErro } from './supabase'
 import { normalizarDados, useDadosNuvem, type Dados } from './useDadosNuvem'
 import { gerarExemplo } from './exemplo'
 import { CATEGORIAS_PADRAO } from './utils'
-import Login from './components/Login'
+import Login, { type Modo } from './components/Login'
+import Landing from './components/Landing'
 import Planos from './components/Planos'
 import { acessoAtivo, limparRetornoDoPagamento, useAcesso, type Acesso } from './acesso'
 import App from './App'
@@ -149,7 +150,19 @@ function ComAcesso({ user }: { user: User }) {
   return <AreaLogada user={user} acesso={estado.acesso} />
 }
 
+/** #entrar e #cadastro abrem o login; sem isso, quem não está logado vê a página de vendas */
+const telaDoEndereco = (): Modo | null => (location.hash === '#entrar' ? 'entrar' : location.hash === '#cadastro' ? 'cadastrar' : null)
+
 function ComAutenticacao() {
+  const [telaLogin, setTelaLogin] = useState<Modo | null>(telaDoEndereco)
+  useEffect(() => {
+    const mudou = () => {
+      setTelaLogin(telaDoEndereco())
+      if (location.hash === '#entrar' || location.hash === '#cadastro') window.scrollTo({ top: 0 })
+    }
+    window.addEventListener('hashchange', mudou)
+    return () => window.removeEventListener('hashchange', mudou)
+  }, [])
   const [sessao, setSessao] = useState<Session | null | undefined>(undefined)
   const [recuperando, setRecuperando] = useState(false)
 
@@ -164,7 +177,11 @@ function ComAutenticacao() {
 
   if (sessao === undefined) return <Splash />
   if (sessao && recuperando) return <NovaSenha onConcluir={() => setRecuperando(false)} />
-  if (!sessao) return <Login />
+  if (!sessao) {
+    if (!telaLogin) return <Landing onCadastrar={() => (location.hash = 'cadastro')} onEntrar={() => (location.hash = 'entrar')} />
+    // a chave recria o formulário ao trocar entre "Entrar" e "Testar grátis"
+    return <Login key={telaLogin} modoInicial={telaLogin} onVoltar={() => { history.replaceState(null, '', location.pathname + location.search); setTelaLogin(null) }} />
+  }
   return <ComAcesso key={sessao.user.id} user={sessao.user} />
 }
 
