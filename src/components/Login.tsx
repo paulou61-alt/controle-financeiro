@@ -120,7 +120,7 @@ export default function Login({ modoInicial = 'entrar', onVoltar }: { modoInicia
     if (modo !== 'recuperar' && senha.length < 6) return setErro('A senha deve ter pelo menos 6 caracteres.')
     if (modo === 'cadastrar' && !nome.trim()) return setErro('Digite seu nome.')
     if (CHAVE_CAPTCHA && !token)
-      return setErro(falhaCaptcha ? 'Não foi possível carregar a verificação de segurança. Recarregue a página.' : 'Aguarde a verificação de segurança logo acima do botão.')
+      return setErro(falhaCaptcha ? 'Não foi possível carregar a verificação de segurança. Recarregue a página.' : 'Marque a verificação de segurança logo acima do botão.')
     const captchaToken = token || undefined
 
     setCarregando(true)

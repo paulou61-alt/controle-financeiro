@@ -278,3 +278,6 @@ create policy "atualizar os proprios dados" on public.dados_usuario
 
 -- Bloquear alguém manualmente:
 -- update public.acessos set status = 'cancelado', valido_ate = now(), atualizado_em = now() where email = 'pessoa@email.com';
+
+-- atualiza a API do Supabase com as tabelas e funções novas
+notify pgrst, 'reload schema';
