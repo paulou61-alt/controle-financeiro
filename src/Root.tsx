@@ -35,8 +35,9 @@ function ConfigFaltando() {
   return (
     <TelaSimples icone={<Settings size={28} />} titulo="Falta conectar o Supabase">
       <p>
-        Defina as variáveis <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code> (no arquivo{' '}
-        <code>.env.local</code> ou nas Environment Variables da Vercel) e publique novamente.
+        Defina as variáveis <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code> (ou <code>SUPABASE_URL</code> e{' '}
+        <code>SUPABASE_ANON_KEY</code>) no arquivo <code>.env.local</code> ou nas Environment Variables da Vercel, para
+        Production e Preview, e publique novamente.
       </p>
     </TelaSimples>
   )
