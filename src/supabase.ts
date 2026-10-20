@@ -21,6 +21,7 @@ export const supabase: SupabaseClient = supabaseConfigurado
 
 const MENSAGENS: [RegExp, string][] = [
   [/invalid login credentials/i, 'E-mail ou senha incorretos.'],
+  [/captcha/i, 'A verificação de segurança falhou ou expirou. Marque o quadro de novo e tente outra vez.'],
   [/email not confirmed/i, 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.'],
   [/already registered|already been registered/i, 'Este e-mail já está cadastrado. Tente entrar.'],
   [/password should be at least/i, 'A senha deve ter pelo menos 6 caracteres.'],

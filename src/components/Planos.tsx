@@ -14,6 +14,8 @@ function motivo(a: Acesso | null): { tom: 'info' | 'ruim'; texto: string } | nul
     if (a.status === 'atrasado') return { tom: 'ruim', texto: `Não conseguimos cobrar a renovação do plano ${NOME_PLANO[a.plano]}${ate}. Atualize o pagamento para não perder o acesso.` }
     return { tom: 'info', texto: `Você assina o plano ${NOME_PLANO[a.plano]}${ate}. Para trocar de plano ou cancelar, use "Gerenciar assinatura".` }
   }
+  if (a.plano === 'teste' && a.status === 'cancelado')
+    return { tom: 'info', texto: 'O teste grátis já foi usado por este e-mail (ou o e-mail é temporário). Escolha um plano para começar.' }
   if (a.plano === 'teste' && a.status === 'ativo')
     return a.valido_ate && new Date(a.valido_ate) > new Date()
       ? { tom: 'info', texto: `Você está no teste grátis até ${dataCurta(a.valido_ate)}. Assinar agora não perde nada do que já registrou.` }

@@ -49,6 +49,17 @@ Todo usuário ganha **7 dias de teste grátis** automaticamente, sem cartão e u
 
 Os dados de quem foi bloqueado continuam guardados. Se a pessoa assinar de novo com o mesmo e-mail, volta tudo como estava.
 
+### Proteção contra abuso do teste grátis
+
+- **Mesma caixa de e-mail:** variações como `paulo+1@gmail.com` ou `p.a.u.l.o@gmail.com` contam como `paulo@gmail.com` e não ganham outro teste (tabela `testes_usados`).
+- **E-mail temporário:** domínios descartáveis (yopmail, mailinator, temp-mail...) criam a conta, mas sem teste; a pessoa pode assinar normalmente. Para incluir outro domínio: `insert into public.dominios_descartaveis values ('dominio.com');`
+- **Captcha (Cloudflare Turnstile):** barra robôs no cadastro, no login e na recuperação de senha. Para ligar, **nesta ordem**:
+  1. No [Cloudflare](https://dash.cloudflare.com) > Turnstile > Add widget: domínio `lucrorealbr.vercel.app` (e `localhost` para testar), modo **Managed**. Copie a **Site Key** e a **Secret Key**.
+  2. Na Vercel, crie `VITE_TURNSTILE_SITE_KEY` com a Site Key (sem marcar *Sensitive*, ela é pública) e faça um novo deploy.
+  3. Só depois, no Supabase > Authentication > Attack Protection, ligue **Enable Captcha protection**, escolha **Turnstile** e cole a **Secret Key**.
+
+  Se ligar o passo 3 antes do 2, ninguém consegue entrar até o deploy terminar.
+
 ### Configuração (faça primeiro no modo de teste do Stripe)
 
 1. **Supabase**: rode de novo o [`supabase/schema.sql`](supabase/schema.sql) no SQL Editor. Você também ganha os 7 dias de teste; para não ter prazo, libere o seu e-mail com a linha `insert ... 'cortesia'` que está no fim do arquivo. Mantenha ligada a confirmação de e-mail (Authentication → Providers → Email → Confirm email): é ela que garante que ninguém se cadastra com o e-mail de quem pagou.

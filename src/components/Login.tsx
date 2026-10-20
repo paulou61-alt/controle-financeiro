@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   ArrowLeft, ArrowRight, BellRing, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail, PieChart,
   ShieldCheck, Smartphone, TrendingUp, User,
 } from 'lucide-react'
 import { supabase, traduzirErro } from '../supabase'
+import { CHAVE_CAPTCHA, Captcha, type CaptchaRef } from './Captcha'
 
 export type Modo = 'entrar' | 'cadastrar' | 'recuperar'
 
@@ -100,6 +101,9 @@ export default function Login({ modoInicial = 'entrar', onVoltar }: { modoInicia
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
+  const [token, setToken] = useState('')
+  const [falhaCaptcha, setFalhaCaptcha] = useState(false)
+  const captcha = useRef<CaptchaRef>(null)
 
   const trocar = (m: Modo) => {
     setModo(m)
@@ -115,17 +119,20 @@ export default function Login({ modoInicial = 'entrar', onVoltar }: { modoInicia
     if (!/^\S+@\S+\.\S+$/.test(mail)) return setErro('Digite um e-mail válido.')
     if (modo !== 'recuperar' && senha.length < 6) return setErro('A senha deve ter pelo menos 6 caracteres.')
     if (modo === 'cadastrar' && !nome.trim()) return setErro('Digite seu nome.')
+    if (CHAVE_CAPTCHA && !token)
+      return setErro(falhaCaptcha ? 'Não foi possível carregar a verificação de segurança. Recarregue a página.' : 'Aguarde a verificação de segurança logo acima do botão.')
+    const captchaToken = token || undefined
 
     setCarregando(true)
     try {
       if (modo === 'entrar') {
-        const { error } = await supabase.auth.signInWithPassword({ email: mail, password: senha })
+        const { error } = await supabase.auth.signInWithPassword({ email: mail, password: senha, options: { captchaToken } })
         if (error) throw error
       } else if (modo === 'cadastrar') {
         const { data, error } = await supabase.auth.signUp({
           email: mail,
           password: senha,
-          options: { data: { nome: nome.trim() }, emailRedirectTo: window.location.origin },
+          options: { data: { nome: nome.trim() }, emailRedirectTo: window.location.origin, captchaToken },
         })
         if (error) throw error
         if (data.user && data.user.identities?.length === 0) throw new Error('already registered')
@@ -135,7 +142,7 @@ export default function Login({ modoInicial = 'entrar', onVoltar }: { modoInicia
           setSenha('')
         }
       } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(mail, { redirectTo: window.location.origin })
+        const { error } = await supabase.auth.resetPasswordForEmail(mail, { redirectTo: window.location.origin, captchaToken })
         if (error) throw error
         setSucesso(`Se existir uma conta com ${mail}, você vai receber um link para criar uma nova senha.`)
       }
@@ -143,6 +150,8 @@ export default function Login({ modoInicial = 'entrar', onVoltar }: { modoInicia
       setErro(traduzirErro(err))
     } finally {
       setCarregando(false)
+      // cada verificação vale para uma tentativa só
+      captcha.current?.reiniciar()
     }
   }
 
@@ -224,6 +233,8 @@ export default function Login({ modoInicial = 'entrar', onVoltar }: { modoInicia
               )}
             </label>
           )}
+
+          {CHAVE_CAPTCHA && <Captcha ref={captcha} onToken={setToken} onFalha={() => setFalhaCaptcha(true)} />}
 
           {erro && <p className="erro" role="alert">{erro}</p>}
 
