@@ -167,6 +167,7 @@
 .planos-usuario { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--texto-3); min-width: 0; }
 .planos-usuario > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .planos-conteudo { max-width: 1120px; margin: 0 auto; padding: 24px 32px 56px; display: flex; flex-direction: column; gap: 22px; }
+.planos-conteudo.embutido { padding: 0; max-width: none; }
 .planos-titulo { text-align: center; }
 .planos-titulo h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: -.03em; }
 .planos-titulo p { margin: 0; color: var(--texto-2); }

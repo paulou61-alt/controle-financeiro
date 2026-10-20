@@ -93,6 +93,38 @@ export function useAcesso(email: string) {
   return { estado, confirmando, recarregar: () => setVersao((v) => v + 1) }
 }
 
+/* ---------- Payment Links (reserva enquanto o checkout do servidor não está configurado) ---------- */
+
+const LINKS: Record<PlanoVenda, string | undefined> = {
+  mensal: import.meta.env.VITE_STRIPE_LINK_MENSAL ?? 'https://buy.stripe.com/6oU7sL7bF2941AsfczgQE00',
+  semestral: import.meta.env.VITE_STRIPE_LINK_SEMESTRAL ?? 'https://buy.stripe.com/aFadR9dA3dRM3IA3tRgQE03',
+  anual: import.meta.env.VITE_STRIPE_LINK_ANUAL ?? 'https://buy.stripe.com/aFa6oH67BaFA3IA8ObgQE02',
+  vitalicio: import.meta.env.VITE_STRIPE_LINK_VITALICIO ?? 'https://buy.stripe.com/6oU8wPbrVeVQ7YQ5BZgQE01',
+}
+
+// Aceita somente páginas de pagamento hospedadas pelo Stripe.
+function linkStripe(valor?: string): URL | undefined {
+  if (!valor?.trim()) return undefined
+  try {
+    const url = new URL(valor.trim())
+    if (url.protocol === 'https:' && url.hostname === 'buy.stripe.com' && !url.username && !url.password && !url.port && url.pathname !== '/') return url
+  } catch { /* configuração ausente ou inválida */ }
+  return undefined
+}
+
+/** Link de pagamento já com o e-mail e o id da conta, para o webhook ligar a compra a quem está logado */
+async function linkDePagamento(plano: PlanoVenda) {
+  const url = linkStripe(LINKS[plano])
+  if (!url) throw new Error('Este plano ainda não está disponível. Tente outro ou fale com o suporte.')
+  const { data } = await supabase.auth.getSession()
+  const user = data.session?.user
+  if (user?.email) url.searchParams.set('prefilled_email', user.email)
+  if (user?.id) url.searchParams.set('client_reference_id', user.id)
+  return url.href
+}
+
+class NaoConfigurado extends Error {}
+
 async function chamar(rota: string, corpo?: object): Promise<string> {
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
@@ -103,13 +135,30 @@ async function chamar(rota: string, corpo?: object): Promise<string> {
   } catch {
     throw new Error('Sem conexão com o servidor. Verifique sua internet.')
   }
-  const j = (await r.json().catch(() => ({}))) as { url?: string; erro?: string }
+  const j = (await r.json().catch(() => ({}))) as { url?: string; erro?: string; codigo?: string }
+  // 404: rodando sem as funções da Vercel (ex.: npm run dev)
+  if (j.codigo === 'nao-configurado' || r.status === 404) throw new NaoConfigurado()
   if (!r.ok || !j.url) throw new Error(j.erro || 'O pagamento ainda não está disponível. Tente de novo em instantes.')
   return j.url
 }
 
-/** Leva para a página de pagamento do Stripe */
-export const assinar = async (plano: PlanoVenda) => location.assign(await chamar('/api/checkout', { plano }))
+/** Leva para a página de pagamento do Stripe (checkout do servidor ou, na falta dele, o Payment Link) */
+export async function assinar(plano: PlanoVenda) {
+  let url: string
+  try {
+    url = await chamar('/api/checkout', { plano })
+  } catch (e) {
+    if (!(e instanceof NaoConfigurado)) throw e
+    url = await linkDePagamento(plano)
+  }
+  location.assign(url)
+}
 
 /** Leva para o portal do Stripe (cartão, troca de plano, recibos, cancelamento) */
-export const gerenciarAssinatura = async () => location.assign(await chamar('/api/portal'))
+export async function gerenciarAssinatura() {
+  try {
+    location.assign(await chamar('/api/portal'))
+  } catch (e) {
+    throw e instanceof NaoConfigurado ? new Error('O portal de assinatura ainda não está disponível.') : e
+  }
+}

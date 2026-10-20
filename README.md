@@ -80,3 +80,20 @@ npm run dev
 1. Acesse https://vercel.com/new e importe este repositório do GitHub.
 2. A Vercel detecta o Vite automaticamente (build `npm run build`, saída `dist`).
 3. Adicione as variáveis do Supabase (passo 5 acima) e clique em **Deploy**. Cada novo `git push` na branch `main` publica uma nova versão.
+
+## Planos e Stripe
+
+A aba **Planos** fica no menu lateral (e em **Mais**, no celular) e é a mesma tela que aparece para quem está sem acesso.
+
+| Plano | Valor em BRL | Tipo de preço no Stripe |
+| --- | --- | --- |
+| Mensal | R$ 14,90 | Recorrente, a cada 1 mês |
+| Semestral | R$ 69,90 | Recorrente, a cada 6 meses |
+| Anual (Melhor equilíbrio) | R$ 99,90 | Recorrente, a cada 1 ano |
+| Vitalício (Pague uma vez) | R$ 149,90 | Pagamento único |
+
+Ao escolher um plano, o app abre o **Checkout do Stripe ligado à conta logada** (`/api/checkout`). Enquanto as chaves do Stripe e do Supabase não estiverem na Vercel, o botão usa os **Payment Links** como reserva, já com o e-mail e o id da conta preenchidos (`prefilled_email` e `client_reference_id`), e o webhook libera o acesso do mesmo jeito.
+
+Os quatro Payment Links de produção estão como padrão em `src/acesso.ts`. As variáveis `VITE_STRIPE_LINK_MENSAL`, `VITE_STRIPE_LINK_SEMESTRAL`, `VITE_STRIPE_LINK_ANUAL` e `VITE_STRIPE_LINK_VITALICIO` substituem esses links; uma variável vazia desativa o plano. Só são aceitos links `https://buy.stripe.com/...`. No modo demonstração, a contratação fica desativada. Em cada Payment Link, configure no Stripe o redirecionamento após o pagamento para `https://SEU-SITE/?assinatura=sucesso`, para o app confirmar o acesso sozinho.
+
+Nenhuma chave secreta deve ir em variáveis `VITE_*`, pois elas são públicas. A liberação do acesso nunca depende do navegador: ela vem só do webhook verificado (veja abaixo).

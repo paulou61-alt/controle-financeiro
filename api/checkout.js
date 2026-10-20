@@ -2,13 +2,17 @@
 import { PRECOS, acessoDoEmail, acessoValido, json, origem, stripe, usuarioDoToken } from './_lib.js'
 
 export async function POST(request) {
+  // sem as chaves na Vercel, o app usa os Payment Links do Stripe
+  const naoConfigurado = () => json({ erro: 'Checkout não configurado.', codigo: 'nao-configurado' }, 503)
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY) return naoConfigurado()
   try {
     const user = await usuarioDoToken(request)
     if (!user) return json({ erro: 'Sua sessão expirou. Entre de novo.' }, 401)
 
     const { plano } = await request.json().catch(() => ({}))
+    if (!(plano in PRECOS)) return json({ erro: 'Plano inválido.' }, 400)
     const preco = PRECOS[plano]
-    if (!preco) return json({ erro: 'Plano indisponível no momento.' }, 400)
+    if (!preco) return naoConfigurado()
 
     const email = user.email.toLowerCase()
     const acesso = await acessoDoEmail(email)

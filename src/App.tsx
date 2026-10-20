@@ -34,10 +34,11 @@ import DreView from './components/Dre'
 import MetasView from './components/Metas'
 import type { Regime } from './analise'
 import { diasDeTeste, gerenciarAssinatura, type Acesso } from './acesso'
+import Planos from './components/Planos'
 
 export type Aba =
   | 'painel' | 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes' | 'relatorios' | 'dre' | 'metas' | 'orcamentos'
-  | 'contatos' | 'categorias' | 'ajustes'
+  | 'contatos' | 'categorias' | 'planos' | 'ajustes'
 export type Tema = 'sistema' | 'claro' | 'escuro'
 
 type Secao = 'Financeiro' | 'Análise' | 'Organização'
@@ -54,6 +55,7 @@ const ABAS: { id: Aba; rotulo: string; curto: string; icone: LucideIcon; secao: 
   { id: 'orcamentos', rotulo: 'Orçamentos', curto: 'Orçam.', icone: Target, secao: 'Análise' },
   { id: 'contatos', rotulo: 'Clientes e fornecedores', curto: 'Contatos', icone: Users, secao: 'Organização' },
   { id: 'categorias', rotulo: 'Categorias', curto: 'Categ.', icone: Tags, secao: 'Organização' },
+  { id: 'planos', rotulo: 'Planos', curto: 'Planos', icone: Sparkles, secao: 'Organização' },
   { id: 'ajustes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings, secao: 'Organização' },
 ]
 const SECOES: Secao[] = ['Financeiro', 'Análise', 'Organização']
@@ -72,6 +74,7 @@ const SUBTITULOS: Record<Aba, string> = {
   metas: 'Aonde você quer chegar, e quanto falta',
   orcamentos: 'Limites mensais por categoria para manter os gastos sob controle',
   categorias: 'Organize suas receitas e despesas do seu jeito',
+  planos: 'Escolha o melhor período para você',
   ajustes: 'Perfil, aparência e backup dos seus dados',
 }
 
@@ -122,7 +125,6 @@ interface Props {
   onSair: () => void
   /** null = cobrança ainda não ligada */
   acesso?: Acesso | null
-  onVerPlanos?: () => void
 }
 
 /** Contas criadas pelo gerador de exemplo (versões anteriores gravavam o exemplo na conta) */
@@ -133,7 +135,7 @@ type AcaoSerie =
   | { acao: 'editar'; original: Lancamento; editado: Lancamento }
   | { acao: 'excluir'; alvo: Lancamento }
 
-export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onSairDemo, onTentarSalvar, email, onSair, acesso = null, onVerPlanos }: Props) {
+export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onSairDemo, onTentarSalvar, email, onSair, acesso = null }: Props) {
   const [aba, setAbaEstado] = useState<Aba>('painel')
   const [mes, setMes] = useState(mesAtual())
   const [periodo, setPeriodo] = useState<Periodo>(() => periodoDoPreset('mes'))
@@ -484,14 +486,14 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <button className="btn pequeno claro" onClick={sairDemo}><Undo2 size={15} /> Voltar para meus dados</button>
             </div>
           )}
-          {diasDeTeste(acesso) !== null && onVerPlanos && (
+          {diasDeTeste(acesso) !== null && aba !== 'planos' && (
             <div className="faixa-demo teste" role="status">
               <Sparkles size={18} />
               <span>
                 <strong>Teste grátis:</strong>{' '}
                 {diasDeTeste(acesso)! <= 1 ? 'termina hoje.' : `faltam ${diasDeTeste(acesso)} dias.`} Assine para continuar sem perder nada.
               </span>
-              <button className="btn pequeno claro" onClick={onVerPlanos}>Ver planos</button>
+              <button className="btn pequeno claro" onClick={() => setAba('planos')}>Ver planos</button>
             </div>
           )}
           {acesso?.status === 'atrasado' && (
@@ -531,7 +533,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <button className="btn-icone so-celular" onClick={() => setTema(escuro ? 'claro' : 'escuro')} aria-label="Alternar tema">
                 {escuro ? <Sun size={19} /> : <Moon size={19} />}
               </button>
-              {aba !== 'painel' && aba !== 'metas' && (
+              {aba !== 'painel' && aba !== 'metas' && aba !== 'planos' && (
                 <button className="btn primario so-desktop" onClick={() => novo(aba === 'receber' ? 'receita' : 'despesa')}>
                   <Plus size={18} /> Novo lançamento
                 </button>
@@ -584,11 +586,12 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <OrcamentosView mes={mes} lancamentos={lancamentos} categorias={categorias} orcamentos={orcamentos} setOrcamentos={setOrcamentos} />
             )}
             {aba === 'categorias' && <CategoriasView categorias={categorias} setCategorias={setCategorias} lancamentos={lancamentos} />}
+            {aba === 'planos' && <Planos embutido email={email} acesso={acesso} emDemo={emDemo} confirmando={false} onSair={sair} />}
             {aba === 'ajustes' && (
               <Ajustes categorias={categorias} lancamentos={lancamentos} orcamentos={orcamentos} contas={contas} transferencias={transferencias}
                 onImportar={importar} onApagarTudo={apagarTudo}
                 nome={nome} setNome={setNome} tema={tema} setTema={setTema} onCarregarExemplo={carregarExemplo}
-                email={email} onSair={sair} perfil={perfil} setPerfil={setPerfil} contatos={cadastros} series={series} metas={metas} acesso={acesso} onVerPlanos={onVerPlanos} />
+                email={email} onSair={sair} perfil={perfil} setPerfil={setPerfil} contatos={cadastros} series={series} metas={metas} acesso={acesso} onVerPlanos={() => setAba('planos')} />
             )}
           </main>
         </div>

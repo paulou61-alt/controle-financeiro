@@ -87,7 +87,7 @@ function NovaSenha({ onConcluir }: { onConcluir: () => void }) {
   )
 }
 
-function AreaLogada({ user, acesso, onVerPlanos }: { user: User; acesso: Acesso | null; onVerPlanos: () => void }) {
+function AreaLogada({ user, acesso }: { user: User; acesso: Acesso | null }) {
   const nomeInicial = String(user.user_metadata?.nome ?? '')
   const { dados, setDados, status, tentarNovamente } = useDadosNuvem(user.id, nomeInicial)
   // Modo demonstração: dados de exemplo só na memória, nunca gravados na conta
@@ -118,7 +118,6 @@ function AreaLogada({ user, acesso, onVerPlanos }: { user: User; acesso: Acesso 
       email={user.email ?? ''}
       onSair={() => supabase.auth.signOut()}
       acesso={acesso}
-      onVerPlanos={onVerPlanos}
     />
   )
 }
@@ -129,7 +128,6 @@ function ComAcesso({ user }: { user: User }) {
   const { estado, confirmando } = useAcesso(email)
   const sair = () => supabase.auth.signOut()
   const liberado = !estado.carregando && (estado.semControle || acessoAtivo(estado.acesso))
-  const [verPlanos, setVerPlanos] = useState(false)
 
   useEffect(() => {
     if (liberado) limparRetornoDoPagamento()
@@ -147,15 +145,7 @@ function ComAcesso({ user }: { user: User }) {
       </TelaSimples>
     )
   if (!liberado) return <Planos email={email} acesso={estado.acesso} confirmando={confirmando} onSair={sair} />
-  return (
-    <>
-      {verPlanos && <Planos email={email} acesso={estado.acesso} confirmando={false} onSair={sair} onVoltar={() => setVerPlanos(false)} />}
-      {/* o app continua montado por baixo, para não perder o que estava aberto */}
-      <div hidden={verPlanos}>
-        <AreaLogada user={user} acesso={estado.acesso} onVerPlanos={() => { setVerPlanos(true); window.scrollTo({ top: 0 }) }} />
-      </div>
-    </>
-  )
+  return <AreaLogada user={user} acesso={estado.acesso} />
 }
 
 function ComAutenticacao() {
