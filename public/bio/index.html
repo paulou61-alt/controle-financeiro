@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Lucro Real | Links</title>
+  <meta name="description" content="Controle financeiro sem conectar seu banco. Teste grátis por 7 dias, sem cartão." />
+  <meta name="theme-color" content="#060a12" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:title" content="Lucro Real · Saiba quanto sobra de verdade" />
+  <meta property="og:description" content="Contas, cartões, DRE e metas em um painel só. 7 dias grátis, sem cartão." />
+  <meta property="og:image" content="https://www.zenvorico.com/landing/painel.jpg" />
+  <meta property="og:url" content="https://www.zenvorico.com/bio" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --fundo: #060a12; --cartao: #0e1624; --cartao-2: #121c2e; --borda: rgb(255 255 255 / .08);
+      --texto: #eef2f8; --texto-2: #a7b0c2; --texto-3: #6f7a90;
+      --verde: #10b981; --verde-2: #34d399; --verde-suave: rgb(16 185 129 / .12); --ciano: #22c3dd;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      min-height: 100vh; background: var(--fundo); color: var(--texto);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; line-height: 1.5;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    .brilho { position: fixed; inset: -20% -40% auto; height: 70vh; pointer-events: none; z-index: 0;
+      background: radial-gradient(closest-side, rgb(16 185 129 / .22), transparent 70%), radial-gradient(closest-side at 80% 30%, rgb(34 195 221 / .12), transparent 70%); }
+    main { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 44px 16px 36px; }
+
+    .topo { text-align: center; }
+    .logo { width: 84px; height: 84px; border-radius: 24px; display: block; margin: 0 auto 16px;
+      box-shadow: 0 0 0 6px rgb(16 185 129 / .12), 0 18px 50px -10px rgb(16 185 129 / .55); }
+    h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; display: inline-flex; align-items: center; gap: 6px; }
+    .verificado { width: 20px; height: 20px; color: var(--verde-2); }
+    .arroba { color: var(--texto-3); font-weight: 600; font-size: 14px; margin-top: 2px; }
+    .frase { font-size: 19px; font-weight: 700; line-height: 1.35; margin: 18px auto 0; max-width: 360px; letter-spacing: -.01em; }
+    .frase em { font-style: normal; background: linear-gradient(90deg, var(--verde-2), #5eead4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .selos { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+    .selos span { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--texto-2);
+      background: rgb(255 255 255 / .04); border: 1px solid var(--borda); padding: 6px 11px; border-radius: 999px; }
+    .selos svg { width: 14px; height: 14px; color: var(--verde-2); }
+
+    .links { display: grid; gap: 12px; margin-top: 28px; }
+    .link { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 18px; text-decoration: none; color: var(--texto);
+      background: var(--cartao); border: 1px solid var(--borda); transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+    .link:hover { transform: translateY(-2px); border-color: rgb(52 211 153 / .4); background: var(--cartao-2); }
+    .link:active { transform: scale(.98); }
+    .link:focus-visible { outline: 2px solid var(--verde-2); outline-offset: 3px; }
+    .icone { flex: none; width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--verde-suave); color: var(--verde-2); }
+    .icone svg { width: 22px; height: 22px; }
+    .link div { flex: 1; min-width: 0; }
+    .link strong { display: block; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+    .link small { display: block; font-size: 13px; color: var(--texto-2); margin-top: 1px; }
+    .seta { flex: none; width: 20px; height: 20px; color: var(--texto-3); transition: transform .15s ease; }
+    .link:hover .seta { transform: translateX(3px); color: var(--verde-2); }
+
+    .principal { position: relative; overflow: hidden; border: 0; padding: 20px 18px;
+      background: linear-gradient(135deg, #059669, #10b981 55%, #14b8a6); box-shadow: 0 18px 44px -14px rgb(16 185 129 / .7); }
+    .principal:hover { background: linear-gradient(135deg, #059669, #10b981 55%, #14b8a6); filter: brightness(1.06); }
+    .principal::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+      background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / .28) 50%, transparent 70%); animation: brilho 3.2s ease-in-out 1s infinite; }
+    .principal .icone { background: rgb(255 255 255 / .18); color: #fff; }
+    .principal strong { font-size: 17px; color: #fff; }
+    .principal small { color: rgb(255 255 255 / .85); }
+    .principal .seta { color: #fff; }
+    .tag { position: absolute; top: 10px; right: 12px; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      background: #fff; color: #047857; padding: 3px 8px; border-radius: 999px; z-index: 1; }
+    @keyframes brilho { 0% { transform: translateX(-100%); } 45%, 100% { transform: translateX(100%); } }
+
+    .vitrine { margin-top: 28px; border-radius: 18px; overflow: hidden; border: 1px solid var(--borda); background: var(--cartao); }
+    .vitrine-barra { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--borda); }
+    .vitrine-barra i { width: 9px; height: 9px; border-radius: 50%; background: rgb(255 255 255 / .14); }
+    .vitrine img { display: block; width: 100%; height: auto; }
+
+    .numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .numeros div { text-align: center; padding: 12px 6px; border-radius: 14px; background: rgb(255 255 255 / .03); border: 1px solid var(--borda); }
+    .numeros strong { display: block; font-size: 17px; font-weight: 800; color: var(--verde-2); letter-spacing: -.01em; }
+    .numeros span { font-size: 11.5px; color: var(--texto-2); font-weight: 600; }
+
+    footer { text-align: center; margin-top: 30px; color: var(--texto-3); font-size: 12.5px; }
+    footer a { color: var(--texto-2); text-decoration: none; font-weight: 600; }
+
+    @media (prefers-reduced-motion: reduce) { .principal::after { animation: none; } .link, .seta { transition: none; } }
+    @media (max-width: 360px) { .frase { font-size: 17px; } .numeros strong { font-size: 15px; } }
+  </style>
+</head>
+<body>
+  <div class="brilho" aria-hidden="true"></div>
+  <main>
+    <header class="topo">
+      <img class="logo" src="/favicon.svg" alt="Lucro Real" width="84" height="84" />
+      <h1>Lucro Real
+        <svg class="verificado" viewBox="0 0 24 24" fill="currentColor" aria-label="Oficial"><path d="M12 1.5l2.6 1.9 3.2-.2 1 3.1 2.6 1.9-1 3.1 1 3.1-2.6 1.9-1 3.1-3.2-.2L12 22.5l-2.6-1.9-3.2.2-1-3.1-2.6-1.9 1-3.1-1-3.1 2.6-1.9 1-3.1 3.2.2z"/><path d="M8 12.3l2.6 2.6L16.2 9" stroke="#060a12" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </h1>
+      <p class="arroba">@lucroreeal.br</p>
+      <p class="frase">Pare de adivinhar. <em>Saiba quanto sobra de verdade</em> no fim do mês.</p>
+      <div class="selos">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Sem senha de banco</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Pessoa física e empresa</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Celular e computador</span>
+      </div>
+    </header>
+
+    <nav class="links" aria-label="Links">
+      <a class="link principal" href="/?utm_source=instagram&amp;utm_medium=bio&amp;utm_content=teste#cadastro">
+        <span class="tag">Grátis</span>
+        <span class="icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></span>
+        <div><strong>Testar 7 dias grátis</strong><small>Sem cartão de crédito. Comece em 1 minuto.</small></div>
+        <svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+
+      <a class="link" href="/?utm_source=instagram&amp;utm_medium=bio&amp;utm_content=planos#planos">
+        <span class="icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor"/></svg></span>
+        <div><strong>Planos a partir de R$ 8,33/mês</strong><small>Anual, semestral, mensal ou vitalício.</small></div>
+        <svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+
+      <a class="link" href="/?utm_source=instagram&amp;utm_medium=bio&amp;utm_content=site">
+        <span class="icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/></svg></span>
+        <div><strong>Conheça o sistema</strong><small>Contas, cartões, DRE e metas em um painel só.</small></div>
+        <svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+
+      <a class="link" href="/?utm_source=instagram&amp;utm_medium=bio&amp;utm_content=seguranca#seguranca">
+        <span class="icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <div><strong>Por que é sem risco</strong><small>Seu banco fica de fora. Quem preenche é você.</small></div>
+        <svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+
+      <a class="link" href="/#entrar">
+        <span class="icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg></span>
+        <div><strong>Já sou cliente</strong><small>Entrar no meu painel.</small></div>
+        <svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </nav>
+
+    <section class="vitrine" aria-label="Prévia do painel">
+      <div class="vitrine-barra" aria-hidden="true"><i></i><i></i><i></i></div>
+      <img src="/landing/painel.jpg" alt="Painel do Lucro Real com saldo atual, previsão de 30 dias e contas vencidas" width="1440" height="900" loading="lazy" />
+    </section>
+
+    <div class="numeros">
+      <div><strong>7 dias</strong><span>de teste grátis</span></div>
+      <div><strong>0</strong><span>senhas de banco</span></div>
+      <div><strong>30 dias</strong><span>de previsão</span></div>
+    </div>
+
+    <footer>
+      <p>Lucro Real · <a href="/">zenvorico.com</a></p>
+    </footer>
+  </main>
+</body>
+</html>

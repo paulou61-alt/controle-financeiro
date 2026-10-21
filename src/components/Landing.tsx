@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ArrowRight, BadgeCheck, BarChart3, Bell, CalendarClock, Check, ChevronDown, CreditCard, Eye, FileSpreadsheet, FileUp, Flag,
   KeyRound, Landmark, Lock, Menu, Moon, Repeat, ShieldCheck, Smartphone, Target, TrendingUp, Upload, Users, X,
@@ -45,6 +45,12 @@ const MESES: Record<string, number> = { mensal: 1, semestral: 6, anual: 12 }
 export default function Landing({ onCadastrar, onEntrar }: Props) {
   const [menu, setMenu] = useState(false)
   const [aberta, setAberta] = useState<number | null>(0)
+
+  // Links externos (como a /bio) chegam com #planos ou #seguranca: rola até a seção depois que a página monta.
+  useEffect(() => {
+    const id = location.hash.slice(1)
+    if (id) document.getElementById(id)?.scrollIntoView()
+  }, [])
   const cta = (texto = 'Começar meus 7 dias grátis') => (
     <button className="lp-btn lp-btn-primario" onClick={onCadastrar}>{texto} <ArrowRight size={18} /></button>
   )
