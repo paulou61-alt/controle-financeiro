@@ -288,7 +288,7 @@ notify pgrst, 'reload schema';
 create table if not exists public.sugestoes (
   id bigint generated always as identity primary key,
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  email text not null default lower((select auth.jwt() ->> 'email')),
+  email text not null default lower(auth.jwt() ->> 'email'),
   nome text,
   tipo text not null default 'ideia' check (tipo in ('ideia', 'melhoria', 'problema', 'outro')),
   texto text not null check (char_length(trim(texto)) between 5 and 2000),
