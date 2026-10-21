@@ -461,7 +461,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
           <div className="marca">
             <img src="/favicon.svg" alt="" width={36} height={36} />
             <div>
-              <strong>Finanças</strong>
+              <strong>Lucro Real</strong>
               <span>Controle Financeiro</span>
             </div>
           </div>

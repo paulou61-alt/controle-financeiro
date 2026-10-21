@@ -29,7 +29,7 @@ function Vitrine() {
       <div className="vt-conteudo">
         <div className="vt-marca">
           <img src="/favicon.svg" alt="" width={44} height={44} />
-          <span>Finanças</span>
+          <span>Lucro Real</span>
         </div>
 
         <div className="vt-cena">
@@ -169,7 +169,7 @@ export default function Login({ modoInicial = 'entrar', onVoltar }: { modoInicia
       <div className="login-lado">
         <div className="login-topo-mobile">
           <img src="/favicon.svg" alt="" width={40} height={40} />
-          <span>Finanças</span>
+          <span>Lucro Real</span>
         </div>
 
         {onVoltar && (

@@ -126,7 +126,7 @@ export default function Planos({ email, acesso, confirmando, onSair, embutido = 
       <header className="planos-topo">
         <div className="marca">
           <img src="/favicon.svg" alt="" width={36} height={36} />
-          <div><strong>Finanças</strong><span>Controle Financeiro</span></div>
+          <div><strong>Lucro Real</strong><span>Controle Financeiro</span></div>
         </div>
         <div className="planos-usuario">
           <span>{email}</span>
