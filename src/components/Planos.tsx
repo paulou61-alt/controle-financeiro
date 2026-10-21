@@ -114,6 +114,7 @@ export default function Planos({ email, acesso, confirmando, onSair, embutido = 
       </ul>
       <p className="planos-rodape">
         O pagamento é feito na página segura do Stripe, com o e-mail desta conta ({email}). Pedidos de reembolso encerram o acesso.
+        Veja os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a>.
       </p>
     </>
   )

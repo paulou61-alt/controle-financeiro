@@ -292,6 +292,7 @@ export default function Landing({ onCadastrar, onEntrar }: Props) {
         <div className="lp-container lp-rodape-dentro">
           <span className="lp-marca pequena"><img src="/favicon.svg" alt="" width={24} height={24} /> Lucro Real</span>
           <span>© {new Date().getFullYear()} Lucro Real · Controle financeiro</span>
+          <span className="lp-rodape-links"><a href="/termos">Termos de Uso</a> · <a href="/privacidade">Privacidade</a> · <a href="https://instagram.com/lucroreeal.br" target="_blank" rel="noopener">Contato</a></span>
           <button className="lp-link-botao" onClick={onEntrar}>Já tenho conta</button>
         </div>
       </footer>

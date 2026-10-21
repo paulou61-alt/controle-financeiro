@@ -238,6 +238,13 @@ export default function Login({ modoInicial = 'entrar', onVoltar }: { modoInicia
 
           {erro && <p className="erro" role="alert">{erro}</p>}
 
+          {modo === 'cadastrar' && (
+            <p className="login-termos">
+              Ao criar a conta, você concorda com os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a> e a{' '}
+              <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.
+            </p>
+          )}
+
           <button type="submit" className="btn primario grande login-botao" disabled={carregando}>
             {carregando ? <Loader2 size={20} className="girar" /> : null}
             {modo === 'entrar' ? 'Entrar' : modo === 'cadastrar' ? 'Criar minha conta' : 'Enviar link de recuperação'}

@@ -1,0 +1,28 @@
+:root {
+  --fundo: #060a12; --cartao: #0e1624; --borda: rgb(255 255 255 / .08);
+  --texto: #eef2f8; --texto-2: #a7b0c2; --texto-3: #6f7a90; --verde: #10b981; --verde-2: #34d399;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh; background: var(--fundo); color: var(--texto-2);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--verde-2); }
+.topo { position: sticky; top: 0; z-index: 2; background: rgb(6 10 18 / .85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--borda); }
+.topo div { max-width: 760px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.marca { display: inline-flex; align-items: center; gap: 10px; color: var(--texto); text-decoration: none; font-weight: 800; font-size: 17px; letter-spacing: -.02em; }
+.voltar { color: var(--texto-2); text-decoration: none; font-weight: 600; font-size: 14px; }
+main { max-width: 760px; margin: 0 auto; padding: 40px 16px 56px; }
+h1 { color: var(--texto); font-size: clamp(28px, 6vw, 38px); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 8px; }
+.data { color: var(--texto-3); font-size: 14px; margin: 0 0 28px; }
+.resumo { background: var(--cartao); border: 1px solid var(--borda); border-left: 3px solid var(--verde); border-radius: 14px; padding: 16px 18px; margin-bottom: 32px; }
+.resumo p { margin: 0; }
+h2 { color: var(--texto); font-size: 20px; letter-spacing: -.01em; margin: 36px 0 10px; }
+p, li { margin: 0 0 12px; }
+ul { padding-left: 22px; margin: 0 0 12px; }
+strong { color: var(--texto); }
+footer { border-top: 1px solid var(--borda); color: var(--texto-3); font-size: 14px; }
+footer div { max-width: 760px; margin: 0 auto; padding: 22px 16px; display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; }
+footer a { color: var(--texto-2); text-decoration: none; }

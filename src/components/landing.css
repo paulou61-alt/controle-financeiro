@@ -171,6 +171,8 @@ html:has(.landing) { scroll-behavior: smooth; scroll-padding-top: 80px; backgrou
 
 /* Rodapé */
 .lp-rodape { border-top: 1px solid var(--lp-borda); padding: 26px 0; color: var(--lp-texto-3); font-size: 14px; }
+.lp-rodape-links a { color: var(--lp-texto-2); text-decoration: none; }
+.lp-rodape-links a:hover { color: var(--lp-texto); }
 .lp-rodape-dentro { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
 /* Voltar ao site, na tela de login */

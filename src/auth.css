@@ -103,6 +103,8 @@
 .aviso-ok svg { flex: none; margin-top: 1px; }
 .aviso-ok span { color: var(--texto); }
 .login-botao { width: 100%; height: 54px; font-size: 16px; }
+.login-termos { margin: 0; text-align: center; color: var(--texto-3); font-size: 12.5px; line-height: 1.5; }
+.login-termos a { color: var(--texto-2); }
 .login-rodape { margin: 0; text-align: center; color: var(--texto-2); font-size: 14px; }
 .login-rodape .link-mini { font-size: 14px; }
 .captcha { display: flex; justify-content: center; min-height: 65px; }
