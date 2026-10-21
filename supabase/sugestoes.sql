@@ -1,4 +1,4 @@
-/* /* ---------- Sugestões dos usuários ---------- */
+/* ---------- Sugestões dos usuários ---------- */
 
 -- Qualquer pessoa logada envia; só o dono lê e marca como lida.
 create table if not exists public.sugestoes (
