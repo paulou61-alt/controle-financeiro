@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowDownRight, ArrowLeftRight, ArrowUpRight, BarChart3, ChevronLeft, ChevronRight, Cloud, CloudOff, Eye, EyeOff, FileSpreadsheet, Flag, HandCoins,
-  Landmark, CreditCard, LayoutDashboard, List, Loader2, LogOut, Menu, Moon, Plus, Receipt, Settings, Sparkles, Sun, Tags, Target, Users,
+  Landmark, CreditCard, LayoutDashboard, Lightbulb, List, Loader2, LogOut, Menu, Moon, Plus, Receipt, Settings, Sparkles, Sun, Tags, Target, Users,
   Trash2, Undo2, X,
   type LucideIcon,
 } from 'lucide-react'
@@ -35,10 +35,12 @@ import MetasView from './components/Metas'
 import type { Regime } from './analise'
 import { diasDeTeste, gerenciarAssinatura, type Acesso } from './acesso'
 import Planos from './components/Planos'
+import Sugestoes, { EMAIL_DONO } from './components/Sugestoes'
+import { supabase } from './supabase'
 
 export type Aba =
   | 'painel' | 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes' | 'relatorios' | 'dre' | 'metas' | 'orcamentos'
-  | 'contatos' | 'categorias' | 'planos' | 'ajustes'
+  | 'contatos' | 'categorias' | 'planos' | 'sugestoes' | 'ajustes'
 export type Tema = 'sistema' | 'claro' | 'escuro'
 
 type Secao = 'Financeiro' | 'Análise' | 'Organização'
@@ -56,6 +58,7 @@ const ABAS: { id: Aba; rotulo: string; curto: string; icone: LucideIcon; secao: 
   { id: 'contatos', rotulo: 'Clientes e fornecedores', curto: 'Contatos', icone: Users, secao: 'Organização' },
   { id: 'categorias', rotulo: 'Categorias', curto: 'Categ.', icone: Tags, secao: 'Organização' },
   { id: 'planos', rotulo: 'Planos', curto: 'Planos', icone: Sparkles, secao: 'Organização' },
+  { id: 'sugestoes', rotulo: 'Sugestões', curto: 'Sugestões', icone: Lightbulb, secao: 'Organização' },
   { id: 'ajustes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings, secao: 'Organização' },
 ]
 const SECOES: Secao[] = ['Financeiro', 'Análise', 'Organização']
@@ -75,6 +78,7 @@ const SUBTITULOS: Record<Aba, string> = {
   orcamentos: 'Limites mensais por categoria para manter os gastos sob controle',
   categorias: 'Organize suas receitas e despesas do seu jeito',
   planos: 'Escolha o melhor período para você',
+  sugestoes: 'Sentiu falta de algo? Conte para a gente',
   ajustes: 'Perfil, aparência e backup dos seus dados',
 }
 
@@ -193,7 +197,14 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
   const faturasVencidas = faturas.filter((f) => f.status === 'vencida').length
   const vencidasPagar = lancamentos.filter((l) => !l.pago && l.tipo === 'despesa' && l.data < hoje).length + faturasVencidas
   const atrasadasReceber = lancamentos.filter((l) => !l.pago && l.tipo === 'receita' && l.data < hoje).length
-  const badges: Partial<Record<Aba, number>> = { pagar: vencidasPagar, receber: atrasadasReceber, cartoes: faturasVencidas }
+  // Só o dono recebe as sugestões: conta as não lidas para mostrar no menu
+  const souDono = !emDemo && email.toLowerCase() === EMAIL_DONO
+  const [sugestoesNovas, setSugestoesNovas] = useState(0)
+  useEffect(() => {
+    if (!souDono) return
+    supabase.from('sugestoes').select('id', { count: 'exact', head: true }).eq('lida', false).then(({ count }) => setSugestoesNovas(count ?? 0))
+  }, [souDono])
+  const badges: Partial<Record<Aba, number>> = { pagar: vencidasPagar, receber: atrasadasReceber, cartoes: faturasVencidas, sugestoes: sugestoesNovas }
 
   // mantém as recorrências sem fim sempre ~12 meses à frente
   useEffect(() => {
@@ -438,7 +449,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
       <button key={a.id} className={aba === a.id ? 'menu-item ativo' : 'menu-item'} onClick={() => setAba(a.id)} aria-current={aba === a.id ? 'page' : undefined}>
         <Icone size={20} strokeWidth={2} />
         <span>{a.rotulo}</span>
-        {badge > 0 && <em className="badge ruim" title="Vencidas">{badge}</em>}
+        {badge > 0 && <em className="badge ruim" title={a.id === 'sugestoes' ? 'Sugestões novas' : 'Vencidas'}>{badge}</em>}
       </button>
     )
   }
@@ -586,6 +597,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <OrcamentosView mes={mes} lancamentos={lancamentos} categorias={categorias} orcamentos={orcamentos} setOrcamentos={setOrcamentos} />
             )}
             {aba === 'categorias' && <CategoriasView categorias={categorias} setCategorias={setCategorias} lancamentos={lancamentos} />}
+            {aba === 'sugestoes' && <Sugestoes email={email} nome={nome} emDemo={emDemo} onNaoLidas={setSugestoesNovas} />}
             {aba === 'planos' && <Planos embutido email={email} acesso={acesso} emDemo={emDemo} confirmando={false} onSair={sair} />}
             {aba === 'ajustes' && (
               <Ajustes categorias={categorias} lancamentos={lancamentos} orcamentos={orcamentos} contas={contas} transferencias={transferencias}
