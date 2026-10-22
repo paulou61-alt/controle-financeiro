@@ -42,6 +42,17 @@ export const PRECOS = {
 
 export const planoDoPreco = (precoId) => Object.entries(PRECOS).find(([, id]) => id && id === precoId)?.[0]
 
+/** Plano a partir do objeto price do Stripe: pelo ID configurado ou, sem ele, pela recorrência do preço */
+export function planoDoPrecoStripe(preco) {
+  if (!preco) return undefined
+  const porId = planoDoPreco(typeof preco === 'string' ? preco : preco.id)
+  if (porId || typeof preco === 'string') return porId
+  const r = preco.recurring
+  if (!r) return 'vitalicio' // o único produto de pagamento único é o vitalício
+  const meses = r.interval === 'year' ? 12 * r.interval_count : r.interval === 'month' ? r.interval_count : 0
+  return { 1: 'mensal', 6: 'semestral', 12: 'anual' }[meses]
+}
+
 export const json = (corpo, status = 200) =>
   new Response(JSON.stringify(corpo), { status, headers: { 'content-type': 'application/json; charset=utf-8' } })
 

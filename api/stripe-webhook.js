@@ -5,7 +5,7 @@
 //  - renovação recusada: continua liberado por 5 dias de tolerância (status "atrasado")
 //  - assinatura cancelada: usa até o fim do período pago
 //  - reembolso total ou contestação (chargeback): bloqueia na hora e cancela a assinatura
-import { admin, planoDoPreco, stripe } from './_lib.js'
+import { admin, planoDoPrecoStripe, stripe } from './_lib.js'
 
 const DIA = 86400000
 const TOLERANCIA_ATRASO = 5 * DIA
@@ -57,7 +57,13 @@ async function sincronizarAssinatura(sub, emailInformado) {
   // eventos de uma assinatura antiga não sobrescrevem a atual
   if (atual?.stripe_subscription_id && atual.stripe_subscription_id !== sub.id && ['canceled', 'incomplete_expired'].includes(sub.status)) return
 
-  const plano = planoDoPreco(sub.items?.data?.[0]?.price?.id) || sub.metadata?.plano || atual?.plano || 'mensal'
+  // nunca herda "teste" ou "cortesia" da linha atual: quem tem assinatura paga está num plano pago
+  const PAGOS = ['mensal', 'semestral', 'anual']
+  const plano =
+    planoDoPrecoStripe(sub.items?.data?.[0]?.price) ||
+    (PAGOS.includes(sub.metadata?.plano) && sub.metadata.plano) ||
+    (PAGOS.includes(atual?.plano) && atual.plano) ||
+    'mensal'
   const fim = fimDoPeriodo(sub)
   let status
   let validoAte
@@ -99,7 +105,7 @@ async function checkoutConcluido(s, tipoEvento) {
   let plano = s.metadata?.plano
   if (!plano) {
     const itens = await stripe().checkout.sessions.listLineItems(s.id, { limit: 5 })
-    plano = itens.data.map((i) => planoDoPreco(idDe(i.price))).find(Boolean)
+    plano = itens.data.map((i) => planoDoPrecoStripe(i.price)).find(Boolean)
   }
   if (plano !== 'vitalicio') return console.warn('[webhook] pagamento avulso sem plano vitalício', s.id)
 
