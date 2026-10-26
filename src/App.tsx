@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowDownRight, ArrowLeftRight, ArrowUpRight, BarChart3, ChevronLeft, ChevronRight, Cloud, CloudOff, Eye, EyeOff, FileSpreadsheet, Flag, HandCoins,
   Landmark, CreditCard, LayoutDashboard, Lightbulb, List, Loader2, LogOut, Menu, Moon, Plus, Receipt, Settings, Sparkles, Sun, Tags, Target, Users,
-  Trash2, Undo2, X,
+  Trash2, Undo2, UserCheck, X,
   type LucideIcon,
 } from 'lucide-react'
 import type { Backup, Categoria, ContaFinanceira, Contato, Lancamento, Meta, Orcamentos, Perfil, Tipo, TipoConta, Transferencia } from './types'
@@ -36,11 +36,12 @@ import type { Regime } from './analise'
 import { diasDeTeste, gerenciarAssinatura, type Acesso } from './acesso'
 import Planos from './components/Planos'
 import Sugestoes, { EMAIL_DONO } from './components/Sugestoes'
+import UsuariosView from './components/Usuarios'
 import { supabase } from './supabase'
 
 export type Aba =
   | 'painel' | 'lancamentos' | 'pagar' | 'receber' | 'contas' | 'cartoes' | 'relatorios' | 'dre' | 'metas' | 'orcamentos'
-  | 'contatos' | 'categorias' | 'planos' | 'sugestoes' | 'ajustes'
+  | 'contatos' | 'categorias' | 'planos' | 'sugestoes' | 'usuarios' | 'ajustes'
 export type Tema = 'sistema' | 'claro' | 'escuro'
 
 type Secao = 'Financeiro' | 'Análise' | 'Organização'
@@ -59,6 +60,8 @@ const ABAS: { id: Aba; rotulo: string; curto: string; icone: LucideIcon; secao: 
   { id: 'categorias', rotulo: 'Categorias', curto: 'Categ.', icone: Tags, secao: 'Organização' },
   { id: 'planos', rotulo: 'Planos', curto: 'Planos', icone: Sparkles, secao: 'Organização' },
   { id: 'sugestoes', rotulo: 'Sugestões', curto: 'Sugestões', icone: Lightbulb, secao: 'Organização' },
+  // só aparece para o dono (veja abasVisiveis)
+  { id: 'usuarios', rotulo: 'Usuários ativos', curto: 'Usuários', icone: UserCheck, secao: 'Organização' },
   { id: 'ajustes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings, secao: 'Organização' },
 ]
 const SECOES: Secao[] = ['Financeiro', 'Análise', 'Organização']
@@ -79,6 +82,7 @@ const SUBTITULOS: Record<Aba, string> = {
   categorias: 'Organize suas receitas e despesas do seu jeito',
   planos: 'Escolha o melhor período para você',
   sugestoes: 'Sentiu falta de algo? Conte para a gente',
+  usuarios: 'Quem tem acesso ao Lucro Real e quando usou pela última vez',
   ajustes: 'Perfil, aparência e backup dos seus dados',
 }
 
@@ -204,7 +208,8 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
     if (!souDono) return
     supabase.from('sugestoes').select('id', { count: 'exact', head: true }).eq('lida', false).then(({ count }) => setSugestoesNovas(count ?? 0))
   }, [souDono])
-  const badges: Partial<Record<Aba, number>> = { pagar: vencidasPagar, receber: atrasadasReceber, cartoes: faturasVencidas, sugestoes: sugestoesNovas }
+  const abasVisiveis = souDono ? ABAS : ABAS.filter((a) => a.id !== 'usuarios')
+  const badges: Partial<Record<Aba, number>> ={ pagar: vencidasPagar, receber: atrasadasReceber, cartoes: faturasVencidas, sugestoes: sugestoesNovas }
 
   // mantém as recorrências sem fim sempre ~12 meses à frente
   useEffect(() => {
@@ -469,7 +474,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
           <nav className="menu" aria-label="Menu principal">
             {SECOES.map((s, i) => [
               <span key={s} className={`menu-titulo ${i ? 'espaco' : ''}`}>{s}</span>,
-              ...ABAS.filter((a) => a.secao === s).map(itemMenu),
+              ...abasVisiveis.filter((a) => a.secao === s).map(itemMenu),
             ])}
           </nav>
 
@@ -597,6 +602,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
               <OrcamentosView mes={mes} lancamentos={lancamentos} categorias={categorias} orcamentos={orcamentos} setOrcamentos={setOrcamentos} />
             )}
             {aba === 'categorias' && <CategoriasView categorias={categorias} setCategorias={setCategorias} lancamentos={lancamentos} />}
+            {aba === 'usuarios' && souDono && <UsuariosView />}
             {aba === 'sugestoes' && <Sugestoes email={email} nome={nome} emDemo={emDemo} onNaoLidas={setSugestoesNovas} />}
             {aba === 'planos' && <Planos embutido email={email} acesso={acesso} emDemo={emDemo} confirmando={false} onSair={sair} />}
             {aba === 'ajustes' && (
@@ -634,7 +640,7 @@ export default function App({ dados, setDados, status, emDemo, onEntrarDemo, onS
                 <button className="btn-icone pequeno" onClick={() => setMaisAberto(false)} aria-label="Fechar"><X size={18} /></button>
               </div>
               <div className="grade-mais">
-                {ABAS.filter((a) => !NO_MENU_INFERIOR.includes(a.id)).map((a) => {
+                {abasVisiveis.filter((a) => !NO_MENU_INFERIOR.includes(a.id)).map((a) => {
                   const Icone = a.icone
                   return (
                     <button key={a.id} className={aba === a.id ? 'ativo' : ''} onClick={() => setAba(a.id)}>

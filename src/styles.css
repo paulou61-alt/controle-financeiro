@@ -409,6 +409,14 @@ input::placeholder, textarea::placeholder { color: var(--texto-3); }
 .sug-tipo.problema { background: rgb(240 68 97 / .12); color: var(--vermelho); }
 .sug-tipo.melhoria { background: rgb(34 195 221 / .12); color: var(--ciano); }
 .sug-texto { margin: 10px 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--texto); }
+/* ================= Usuários (dono) ================= */
+.usu-filtro { flex-wrap: wrap; margin-bottom: 14px; }
+.usu-tabela td, .usu-tabela th { vertical-align: middle; }
+.usu-tabela tbody th { min-width: 220px; }
+.usu-tabela td { white-space: nowrap; }
+.usu-nome { display: block; }
+.usu-email { display: block; font-weight: 500; font-size: 13px; color: var(--texto-3); overflow-wrap: anywhere; }
+.usu-tabela .selo { margin: 4px 0 0; }
 .busca { position: relative; flex: 1 1 220px; display: flex; }
 .busca svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--texto-3); pointer-events: none; }
 .busca input { width: 100%; padding-left: 38px !important; }
